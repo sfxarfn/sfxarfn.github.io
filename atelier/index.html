@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chat — Free AI Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf7f2;
+    --bg-elev: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #e6e0d6;
+    --accent: #1f4d3a;
+    --accent-soft: #e8efe9;
+    --user-bg: #1a1a1a;
+    --user-fg: #faf7f2;
+    --error: #b3261e;
+    --serif: 'Fraunces', Georgia, serif;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    height: 100vh;
+    line-height: 1.5;
+  }
+  body.no-scroll { overflow: hidden; }
+
+  .app-shell {
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+  .app-shell.sidebar-collapsed .sidebar { display: none; }
+
+  .sidebar {
+    width: 280px;
+    border-right: 1px solid var(--line);
+    background: var(--bg-elev);
+    display: flex;
+    flex-direction: column;
+    min-width: 240px;
+  }
+
+  .sidebar-head {
+    padding: 16px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .sidebar-head-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sidebar-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .sidebar-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .sidebar-actions { display: flex; align-items: center; gap: 8px; }
+
+  .new-conv {
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .new-conv:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+  .history-list {
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .sidebar-foot {
+    border-top: 1px solid var(--line);
+    padding: 10px;
+  }
+
+  .history-empty {
+    margin: 20px 10px 0;
+    padding: 10px 12px;
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .history-item {
+    border: 1px solid var(--line);
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 10px 11px 9px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .history-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .history-item.active { border-color: var(--accent); background: var(--accent-soft); }
+
+  .history-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .history-role {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+
+  .history-del {
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .history-del:hover { color: var(--error); border-color: var(--error); background: #fff5f4; }
+
+  .history-snippet {
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .app-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  .head-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .sidebar-toggle {
+    padding: 6px 10px;
+    line-height: 1;
+    min-width: 34px;
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 20, 20, 0.35);
+    z-index: 25;
+  }
+
+  header {
+    border-bottom: 1px solid var(--line);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+
+  .brand h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    margin: 0;
+    font-style: italic;
+  }
+
+  .brand span {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  button, select, input {
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--ink);
+  }
+
+  .icon-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .icon-btn:hover { border-color: var(--ink); background: var(--bg-elev); }
+
+  /* Settings panel */
+  .settings {
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--line);
+    padding: 18px 24px;
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .settings.open { display: grid; }
+
+  @media (max-width: 700px) {
+    .settings.open { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 980px) {
+    .sidebar {
+      display: flex;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: min(86vw, 330px);
+      min-width: 0;
+      z-index: 30;
+      transform: translateX(-100%);
+      transition: transform 0.2s ease;
+      box-shadow: 8px 0 26px rgba(0,0,0,0.14);
+    }
+    .app-shell.sidebar-open .sidebar { transform: translateX(0); }
+    .sidebar-backdrop { display: block; }
+    .app-shell:not(.sidebar-open) .sidebar-backdrop { display: none; }
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  .field label {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+
+  .field input, .field select {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+
+  .field .hint { font-size: 11px; color: var(--muted); }
+  .field .hint a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+
+  /* Messages */
+  main { flex: 1; overflow-y: auto; padding: 32px 24px 16px; }
+
+  .messages {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .empty { text-align: center; margin-top: 80px; color: var(--muted); }
+
+  .empty h2 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 32px;
+    color: var(--ink);
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  .empty p { margin: 0; font-size: 14px; }
+
+  .empty .examples {
+    margin-top: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .example {
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg-elev);
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    color: var(--ink);
+    transition: all 0.15s ease;
+  }
+  .example:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+  .msg { display: flex; flex-direction: column; gap: 4px; }
+
+  .msg .role {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .msg.user .role { color: var(--ink); }
+  .msg.assistant .role { color: var(--accent); }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: 10px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .msg.user .bubble {
+    background: var(--user-bg);
+    color: var(--user-fg);
+    align-self: flex-start;
+    max-width: 85%;
+  }
+  .msg.assistant .bubble { background: transparent; padding-left: 0; padding-right: 0; }
+  .msg.error .bubble {
+    background: #fdecea;
+    color: var(--error);
+    border: 1px solid #f5c2bd;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  /* Markdown rendered content */
+  .bubble h1,.bubble h2,.bubble h3 { font-family: var(--serif); font-weight: 500; margin: 16px 0 6px; letter-spacing: -0.01em; }
+  .bubble h1 { font-size: 22px; }
+  .bubble h2 { font-size: 18px; }
+  .bubble h3 { font-size: 15px; }
+  .bubble p  { margin: 0 0 10px; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble ul, .bubble ol { margin: 6px 0 10px; padding-left: 22px; }
+  .bubble li { margin-bottom: 3px; }
+  .bubble pre {
+    background: #1a1a1a;
+    color: #e8e8e8;
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.55;
+    margin: 10px 0;
+  }
+  .bubble code {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: #f0ece4;
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+  .bubble pre code { background: none; padding: 0; color: inherit; }
+  .bubble blockquote {
+    border-left: 3px solid var(--line);
+    margin: 8px 0;
+    padding: 4px 14px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .bubble hr { border: none; border-top: 1px solid var(--line); margin: 12px 0; }
+  .bubble a  { color: var(--accent); text-underline-offset: 2px; }
+  .bubble strong { font-weight: 600; }
+  .bubble del { opacity: 0.5; }
+
+  .cursor {
+    display: inline-block;
+    width: 2px; height: 1.1em;
+    background: var(--accent);
+    vertical-align: text-bottom;
+    margin-left: 1px;
+    border-radius: 1px;
+    animation: blink 0.9s steps(2) infinite;
+  }
+  @keyframes blink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
+
+  /* Thinking state */
+  .thinking-wrap { display: flex; flex-direction: column; gap: 8px; }
+
+  .thinking-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 6px 12px 6px 10px;
+    border: 1px solid var(--accent-soft);
+    border-radius: 20px;
+    background: var(--accent-soft);
+    width: fit-content;
+    animation: fadeSlideIn 0.2s ease;
+  }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .thinking-dots { display: flex; gap: 3px; align-items: center; }
+  .thinking-dots span {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: dotPulse 1.3s ease-in-out infinite;
+  }
+  .thinking-dots span:nth-child(2) { animation-delay: 0.22s; }
+  .thinking-dots span:nth-child(3) { animation-delay: 0.44s; }
+
+  @keyframes dotPulse {
+    0%,80%,100% { opacity: 0.25; transform: scale(0.75); }
+    40%         { opacity: 1;    transform: scale(1.15); }
+  }
+
+  .thinking-phrase {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    padding-left: 4px;
+    min-height: 15px;
+    transition: opacity 0.25s ease;
+  }
+
+  /* Typing state — left-accent rule on assistant bubble */
+  .msg.assistant.is-typing .bubble {
+    border-left: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    padding-left: 12px;
+  }
+
+  /* Input area */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 16px 24px 20px;
+    background: var(--bg);
+  }
+
+  .composer {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    transition: border-color 0.15s ease;
+  }
+  .composer:focus-within { border-color: var(--accent); }
+
+  .composer textarea {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    resize: none;
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink);
+    max-height: 180px;
+    padding: 6px 4px;
+  }
+
+  .send {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 14px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: opacity 0.15s ease;
+  }
+  .send:hover:not(:disabled) { opacity: 0.85; }
+  .send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .stop {
+    background: transparent;
+    color: var(--error);
+    border: 1px solid color-mix(in srgb, var(--error) 35%, var(--line));
+    border-radius: 8px;
+    padding: 9px 12px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.15s ease;
+  }
+  .stop:hover { border-color: var(--error); background: #fff5f4; }
+
+  .status {
+    max-width: 760px;
+    margin: 8px auto 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    min-height: 16px;
+  }
+  .status.warn { color: var(--error); }
+
+  /* Token meter — always visible */
+  .token-bar {
+    max-width: 760px;
+    margin: 8px auto 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 14px;
+    background: var(--bg-elev);
+  }
+
+  .token-bar.conversation { margin-top: 6px; }
+  .token-bar.total {
+    margin: 0;
+    max-width: none;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .token-segments {
+    display: flex;
+    gap: 4px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .token-seg { display: flex; gap: 4px; align-items: baseline; }
+
+  .seg-label {
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+  }
+
+  .seg-val {
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+    min-width: 2ch;
+    text-align: right;
+  }
+
+  .seg-total .seg-val { color: var(--accent); }
+
+  .tok-div {
+    opacity: 0.3;
+    font-size: 10px;
+    padding: 0 2px;
+  }
+
+  .token-reset {
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 3px 9px;
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .token-reset:hover { border-color: var(--error); color: var(--error); }
+</style>
+</head>
+<body>
+<div class="app-shell" id="appShell">
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="sidebar-head-top">
+      <span class="sidebar-title">Conversation History</span>
+      <span class="sidebar-count" id="historyCount">0</span>
+    </div>
+    <div class="sidebar-actions">
+      <button class="new-conv" id="importBtn" title="Import conversations JSON">Import</button>
+      <button class="new-conv" id="exportBtn" title="Export all conversations">Export All</button>
+    </div>
+  </div>
+  <input type="file" id="importFileInput" accept="application/json,.json" hidden />
+  <div class="history-empty" id="historyEmpty">No saved conversation yet.</div>
+  <div class="history-list" id="historyList"></div>
+  <div class="sidebar-foot">
+    <div class="token-bar total">
+      <div class="token-segments">
+        <div class="token-seg seg-total">
+          <span class="seg-val" id="totalTokTotal">0</span>
+          <span class="seg-label">all total</span>
+        </div>
+        <span class="tok-div">|</span>
+        <div class="token-seg">
+          <span class="seg-val" id="totalTokIn">0</span>
+          <span class="seg-label">in</span>
+        </div>
+        <span class="tok-div">+</span>
+        <div class="token-seg">
+          <span class="seg-val" id="totalTokOut">0</span>
+          <span class="seg-label">out</span>
+        </div>
+      </div>
+      <button class="token-reset" id="tokenReset">&#8635; Reset</button>
+    </div>
+  </div>
+</aside>
+<div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+
+<div class="app-main">
+<header>
+  <div class="head-left">
+    <button class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" title="Toggle sidebar">☰</button>
+    <div class="brand">
+      <h1>Atelier</h1>
+      <span>free ai chat</span>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button class="icon-btn" id="newConvBtn" title="Start new conversation">New</button>
+    <button class="icon-btn" id="settingsBtn">Settings</button>
+  </div>
+</header>
+
+<section class="settings" id="settings">
+  <div class="field">
+    <label for="provider">Provider</label>
+    <select id="provider">
+      <option value="gemini">Google Gemini</option>
+      <option value="groq">Groq</option>
+      <option value="openrouter">OpenRouter</option>
+    </select>
+    <div class="hint" id="providerHint"></div>
+  </div>
+
+  <div class="field">
+    <label for="model">Model</label>
+    <select id="model"></select>
+    <div class="hint" id="modelHint"></div>
+  </div>
+
+  <div class="field">
+    <label for="apiKey">API Key</label>
+    <input type="password" id="apiKey" placeholder="Enter API key for selected provider" autocomplete="off" />
+    <div class="hint" id="apiKeyHint">Stored in cookie per provider.</div>
+  </div>
+
+  <div class="field" style="grid-column: 1 / -1;">
+    <label for="systemPrompt">System Prompt (optional)</label>
+    <input type="text" id="systemPrompt" placeholder="e.g. You are a helpful assistant who responds concisely." />
+  </div>
+</section>
+
+<main>
+  <div class="messages" id="messages">
+    <div class="empty" id="empty">
+      <h2>Start a conversation.</h2>
+      <p>Pick a provider and model, then ask anything.</p>
+      <div class="examples">
+        <button class="example" data-prompt="Explain how transformers work in simple terms.">Explain how transformers work in simple terms.</button>
+        <button class="example" data-prompt="Write a haiku about debugging code at 2am.">Write a haiku about debugging code at 2am.</button>
+        <button class="example" data-prompt="Suggest a weekend trip from Malang under 500k IDR.">Suggest a weekend trip from Malang under 500k IDR.</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="composer">
+    <textarea id="input" rows="1" placeholder="Type a message… (Enter to send, Shift+Enter for newline)"></textarea>
+    <button class="send" id="sendBtn">Send</button>
+    <button class="stop" id="stopBtn" hidden>Stop</button>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="token-bar conversation">
+    <div class="token-segments">
+      <div class="token-seg seg-total">
+        <span class="seg-val" id="convTokTotal">0</span>
+        <span class="seg-label">conversation total</span>
+      </div>
+      <span class="tok-div">|</span>
+      <div class="token-seg">
+        <span class="seg-val" id="convTokIn">0</span>
+        <span class="seg-label">in</span>
+      </div>
+      <span class="tok-div">+</span>
+      <div class="token-seg">
+        <span class="seg-val" id="convTokOut">0</span>
+        <span class="seg-label">out</span>
+      </div>
+      <span class="tok-div">·</span>
+      <span class="seg-label">est. tokens</span>
+    </div>
+  </div>
+</footer>
+</div>
+</div>
+
+<script>
+  // --- Cookie helpers ---
+  const cookie = {
+    get(k) {
+      const m = document.cookie.match('(?:^|; )' + encodeURIComponent(k) + '=([^;]*)');
+      return m ? decodeURIComponent(m[1]) : null;
+    },
+    set(k, v, days = 365) {
+      const exp = new Date(Date.now() + days * 864e5).toUTCString();
+      document.cookie = `${encodeURIComponent(k)}=${encodeURIComponent(v)}; expires=${exp}; path=/; SameSite=Lax`;
+    },
+    del(k) {
+      document.cookie = `${encodeURIComponent(k)}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+    }
+  };
+
+  // ── Conversation persistence (localStorage) ─────────────────────
+  const CONVERSATIONS_KEY = 'atelier_conversations';
+  const LEGACY_HISTORY_KEY = 'atelier_history';
+  const HISTORY_MAX = 40; // max messages per conversation
+  const API_KEY_COOKIE_PREFIX = 'atelier_api_key_';
+  const API_KEY_STORE_PREFIX = 'atelier_api_key_fallback_';
+
+  // --- localStorage helpers (provider/model/system prefs) ---
+  const memStore = {};
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return memStore[k] || null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch { memStore[k] = v; } },
+    del(k) { try { localStorage.removeItem(k); } catch { delete memStore[k]; } }
+  };
+
+  // --- Provider configs — models listed by their real API IDs ---
+  const PROVIDERS = {
+    gemini: {
+      defaultModel: 'gemini-2.0-flash',
+      models: [
+        'gemini-2.0-flash',
+        'gemini-2.0-flash-lite',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-8b',
+        'gemini-1.5-pro',
+      ],
+      modelHint: 'Free-tier models via Google AI Studio',
+      providerHint: 'Set key in API Key field · <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a>'
+    },
+    groq: {
+      defaultModel: 'llama-3.3-70b-versatile',
+      models: [
+        'llama-3.3-70b-versatile',
+        'llama-3.1-8b-instant',
+        'llama3-70b-8192',
+        'mixtral-8x7b-32768',
+        'gemma2-9b-it',
+        'deepseek-r1-distill-llama-70b',
+      ],
+      modelHint: 'Ultra-fast inference via Groq',
+      providerHint: 'Set key in API Key field · <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com</a>'
+    },
+    openrouter: {
+      defaultModel: 'meta-llama/llama-3.3-70b-instruct:free',
+      models: [
+        'tencent/hy3-preview:free',
+        'nvidia/nemotron-3-super-120b-a12b:free',
+        'poolside/laguna-m.1:free',
+        'openai/gpt-oss-120b:free',
+        'z-ai/glm-4.5-air:free',
+        'minimax/minimax-m2.5:free',
+        'google/gemma-4-31b-it:free',
+      ],
+      modelHint: 'Append :free for no-cost models',
+      providerHint: 'Set key in API Key field · <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai</a>'
+    }
+  };
+
+  // --- DOM refs ---
+  const els = {
+    appShell:     document.getElementById('appShell'),
+    sidebar:      document.getElementById('sidebar'),
+    sidebarToggle:document.getElementById('sidebarToggle'),
+    sidebarBackdrop: document.getElementById('sidebarBackdrop'),
+    provider:     document.getElementById('provider'),
+    model:        document.getElementById('model'),
+    apiKey:       document.getElementById('apiKey'),
+    apiKeyHint:   document.getElementById('apiKeyHint'),
+    systemPrompt: document.getElementById('systemPrompt'),
+    providerHint: document.getElementById('providerHint'),
+    modelHint:    document.getElementById('modelHint'),
+    settings:     document.getElementById('settings'),
+    settingsBtn:  document.getElementById('settingsBtn'),
+    newConvBtn:   document.getElementById('newConvBtn'),
+    messages:     document.getElementById('messages'),
+    empty:        document.getElementById('empty'),
+    input:        document.getElementById('input'),
+    sendBtn:      document.getElementById('sendBtn'),
+    stopBtn:      document.getElementById('stopBtn'),
+    status:       document.getElementById('status'),
+    convTokTotal: document.getElementById('convTokTotal'),
+    convTokIn:    document.getElementById('convTokIn'),
+    convTokOut:   document.getElementById('convTokOut'),
+    totalTokTotal:document.getElementById('totalTokTotal'),
+    totalTokIn:   document.getElementById('totalTokIn'),
+    totalTokOut:  document.getElementById('totalTokOut'),
+    tokenReset:   document.getElementById('tokenReset'),
+    historyList:  document.getElementById('historyList'),
+    historyEmpty: document.getElementById('historyEmpty'),
+    historyCount: document.getElementById('historyCount'),
+    exportBtn:    document.getElementById('exportBtn'),
+    importBtn:    document.getElementById('importBtn'),
+    importFileInput: document.getElementById('importFileInput'),
+  };
+
+  let conversations = [];
+  let activeConversationId = null;
+  let isStreaming = false;
+  let activeRequestController = null;
+  let lastUsedModel = null;
+  let statusStableText = '';
+  let statusStableWarn = false;
+  let statusFlashTimer = null;
+  let apiInputProvider = null;
+  const sidebarMobileMq = window.matchMedia('(max-width: 980px)');
+
+  function makeConversationId() {
+    if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+    return `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  function makeConversationTitle(messages) {
+    const firstUser = (messages || []).find(m => m.role === 'user')?.content || '';
+    const t = firstUser.replace(/\s+/g, ' ').trim();
+    return t ? t.slice(0, 42) : 'New Conversation';
+  }
+
+  function createConversation(seedMessages = []) {
+    const now = Date.now();
+    return {
+      id: makeConversationId(),
+      title: makeConversationTitle(seedMessages),
+      updatedAt: now,
+      tokenIn: 0,
+      tokenOut: 0,
+      messages: seedMessages.slice(-HISTORY_MAX),
+    };
+  }
+
+  function sanitizeMessages(messages) {
+    return (Array.isArray(messages) ? messages : [])
+      .filter(m => m && (m.role === 'user' || m.role === 'assistant' || m.role === 'error') && typeof m.content === 'string')
+      .map(m => ({ role: m.role, content: m.content }))
+      .slice(-HISTORY_MAX);
+  }
+
+  function normalizeConversation(raw) {
+    const msgs = sanitizeMessages(raw?.messages);
+    return {
+      id: raw?.id || makeConversationId(),
+      title: (typeof raw?.title === 'string' && raw.title.trim()) ? raw.title.trim().slice(0, 84) : makeConversationTitle(msgs),
+      updatedAt: Number(raw?.updatedAt) || Date.now(),
+      tokenIn: Number(raw?.tokenIn || 0),
+      tokenOut: Number(raw?.tokenOut || 0),
+      messages: msgs
+    };
+  }
+
+  function exportAllConversations() {
+    const payload = {
+      schema: 'atelier.conversations.v1',
+      exportedAt: new Date().toISOString(),
+      activeConversationId,
+      conversations: conversations.map(c => normalizeConversation(c))
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    a.href = url;
+    a.download = `atelier-conversations-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    flashStatus('Conversations exported');
+  }
+
+  function appendImportedConversations(parsed) {
+    let incoming = [];
+    if (Array.isArray(parsed?.conversations)) incoming = parsed.conversations;
+    else if (Array.isArray(parsed)) {
+      const looksLikeMessages = parsed.every(m => m && typeof m === 'object' && typeof m.role === 'string' && typeof m.content === 'string');
+      incoming = looksLikeMessages ? [{ messages: parsed }] : parsed;
+    }
+    else if (Array.isArray(parsed?.messages)) incoming = [parsed];
+    else if (Array.isArray(parsed?.history)) incoming = [{ messages: parsed.history }];
+
+    if (incoming.length === 0) throw new Error('No conversations found in file');
+
+    const existingIds = new Set(conversations.map(c => c.id));
+    const additions = incoming.map(item => {
+      const conv = normalizeConversation(item);
+      while (existingIds.has(conv.id)) conv.id = makeConversationId();
+      existingIds.add(conv.id);
+      return conv;
+    });
+
+    conversations = conversations.concat(additions);
+    normaliseConversations();
+    saveAndRender();
+    flashStatus(`Imported ${additions.length} conversation${additions.length > 1 ? 's' : ''}`);
+  }
+
+  function getActiveConversation() {
+    return conversations.find(c => c.id === activeConversationId) || null;
+  }
+
+  function ensureActiveConversation() {
+    let conv = getActiveConversation();
+    if (conv) return conv;
+    if (conversations.length === 0) conversations.push(createConversation());
+    activeConversationId = conversations[0].id;
+    return conversations[0];
+  }
+
+  function touchConversation(conv) {
+    conv.updatedAt = Date.now();
+    conv.title = makeConversationTitle(conv.messages);
+    if (!Number.isFinite(conv.tokenIn)) conv.tokenIn = 0;
+    if (!Number.isFinite(conv.tokenOut)) conv.tokenOut = 0;
+  }
+
+  function apiKeyCookieKey(provider) {
+    return `${API_KEY_COOKIE_PREFIX}${provider}`;
+  }
+
+  function apiKeyStoreKey(provider) {
+    return `${API_KEY_STORE_PREFIX}${provider}`;
+  }
+
+  function getProviderApiKey(provider) {
+    return cookie.get(apiKeyCookieKey(provider)) || store.get(apiKeyStoreKey(provider)) || '';
+  }
+
+  function setProviderApiKey(provider, key) {
+    const k = (key || '').trim();
+    if (!k) {
+      cookie.del(apiKeyCookieKey(provider));
+      store.del(apiKeyStoreKey(provider));
+      return;
+    }
+    cookie.set(apiKeyCookieKey(provider), k);
+    // Fallback for environments where cookie persistence is restricted.
+    if (cookie.get(apiKeyCookieKey(provider)) !== k) {
+      store.set(apiKeyStoreKey(provider), k);
+    } else {
+      store.del(apiKeyStoreKey(provider));
+    }
+  }
+
+  function syncApiKeyInputForProvider(provider) {
+    const saved = getProviderApiKey(provider);
+    apiInputProvider = provider;
+    els.apiKey.value = saved;
+    els.apiKeyHint.textContent = saved
+      ? 'Loaded from cookie for this provider.'
+      : 'Stored in cookie per provider.';
+  }
+
+  function saveHistory() {
+    const cleanConversations = conversations.map(conv => {
+      const cleanMsgs = (conv.messages || [])
+        .filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'error')
+        .slice(-HISTORY_MAX);
+      return {
+        id: conv.id || makeConversationId(),
+        title: conv.title || makeConversationTitle(cleanMsgs),
+        updatedAt: conv.updatedAt || Date.now(),
+        tokenIn: Number(conv.tokenIn || 0),
+        tokenOut: Number(conv.tokenOut || 0),
+        messages: cleanMsgs
+      };
+    });
+    try {
+      store.set(CONVERSATIONS_KEY, JSON.stringify({
+        activeConversationId,
+        conversations: cleanConversations
+      }));
+    } catch (e) { /* storage full — skip */ }
+    renderHistorySidebar();
+  }
+
+  function loadHistory() {
+    try {
+      const raw = store.get(CONVERSATIONS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed?.conversations)) return parsed;
+      }
+      const legacy = store.get(LEGACY_HISTORY_KEY);
+      if (legacy) {
+        const msgs = JSON.parse(legacy);
+        if (Array.isArray(msgs)) {
+          const migrated = createConversation(msgs);
+          return { conversations: [migrated], activeConversationId: migrated.id };
+        }
+      }
+    } catch { /* corrupt storage — ignore */ }
+    return { conversations: [], activeConversationId: null };
+  }
+
+  function clearHistory() {
+    const conv = ensureActiveConversation();
+    if (isStreaming) {
+      flashStatus('Stop current response before clearing conversation', true);
+      return;
+    }
+    if (!confirm('Clear current conversation?')) return;
+    conv.messages = [];
+    conv.title = 'New Conversation';
+    conv.updatedAt = Date.now();
+    conv.tokenIn = 0;
+    conv.tokenOut = 0;
+    saveHistory();
+    renderMessages();
+    flashStatus('Conversation cleared');
+  }
+
+  function newConversation() {
+    const conv = createConversation();
+    conversations.unshift(conv);
+    activeConversationId = conv.id;
+    saveHistory();
+    renderMessages();
+    if (isSidebarMobile()) setSidebarOpen(false);
+    els.input.focus();
+    setStatus(statusWithModel('Ready'));
+  }
+
+  // ── Markdown renderer (no dependencies) ─────────────────────────
+  function renderMarkdown(text) {
+    let html = text
+      // Escape HTML first to prevent injection
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Fenced code blocks ```lang\n...\n```
+    html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+      const cls = lang ? ` class="language-${lang}"` : '';
+      return `<pre><code${cls}>${code.trimEnd()}</code></pre>`;
+    });
+
+    // Inline code `...`
+    html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+    // Bold **...** or __...__
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+    // Italic *...* or _..._  (after bold so ** is already consumed)
+    html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    html = html.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+
+    // Strikethrough ~~...~~
+    html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+
+    // Headings (only at line start)
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+    // Horizontal rule
+    html = html.replace(/^[-*_]{3,}$/gm, '<hr>');
+
+    // Blockquote
+    html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+
+    // Unordered list — collect consecutive bullet lines into one <ul>
+    html = html.replace(/((?:^[*\-+] .+\n?)+)/gm, match => {
+      const items = match.trim().split('\n')
+        .map(l => `<li>${l.replace(/^[*\-+] /, '')}</li>`)
+        .join('');
+      return `<ul>${items}</ul>`;
+    });
+
+    // Ordered list
+    html = html.replace(/((?:^\d+\. .+\n?)+)/gm, match => {
+      const items = match.trim().split('\n')
+        .map(l => `<li>${l.replace(/^\d+\. /, '')}</li>`)
+        .join('');
+      return `<ol>${items}</ol>`;
+    });
+
+    // Links [text](url)
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+    // Paragraphs — wrap double-newline-separated blocks not already in a block tag
+    html = html.split(/\n{2,}/).map(block => {
+      if (/^<(pre|ul|ol|h[1-6]|hr|blockquote)/.test(block.trim())) return block;
+      const inner = block.replace(/\n/g, '<br>');
+      return `<p>${inner}</p>`;
+    }).join('\n');
+
+    return html;
+  }
+
+  function escapeHtml(t) {
+    return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // --- Token tracking — persisted in cookies ---
+  const COOKIE_IN  = 'atelier_tok_in';
+  const COOKIE_OUT = 'atelier_tok_out';
+
+  const tokens = {
+    input:  parseInt(cookie.get(COOKIE_IN)  || '0', 10),
+    output: parseInt(cookie.get(COOKIE_OUT) || '0', 10),
+  };
+
+  function estimateTokens(text) {
+    return Math.ceil((text || '').length / 4);
+  }
+
+  function addInputTokens(messages, system) {
+    let n = 0;
+    if (system) n += estimateTokens(system);
+    messages.forEach(m => { n += estimateTokens(m.content); });
+    tokens.input += n;
+    persistTokens();
+    renderTotalTokens();
+    return n;
+  }
+
+  function addOutputTokens(text) {
+    const n = estimateTokens(text);
+    tokens.output += n;
+    persistTokens();
+    renderTotalTokens();
+    return n;
+  }
+
+  function persistTokens() {
+    cookie.set(COOKIE_IN,  String(tokens.input));
+    cookie.set(COOKIE_OUT, String(tokens.output));
+  }
+
+  function fmtN(n) {
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
+    if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'k';
+    return String(n);
+  }
+
+  function renderTotalTokens() {
+    els.totalTokIn.textContent    = fmtN(tokens.input);
+    els.totalTokOut.textContent   = fmtN(tokens.output);
+    els.totalTokTotal.textContent = fmtN(tokens.input + tokens.output);
+  }
+
+  function renderConversationTokens() {
+    const conv = activeConversation();
+    const inN = Number(conv.tokenIn || 0);
+    const outN = Number(conv.tokenOut || 0);
+    els.convTokIn.textContent = fmtN(inN);
+    els.convTokOut.textContent = fmtN(outN);
+    els.convTokTotal.textContent = fmtN(inN + outN);
+  }
+
+  els.tokenReset.addEventListener('click', () => {
+    if (!confirm('Reset the token counter to zero?')) return;
+    tokens.input = 0;
+    tokens.output = 0;
+    cookie.del(COOKIE_IN);
+    cookie.del(COOKIE_OUT);
+    renderTotalTokens();
+  });
+
+  // --- Model dropdown (shows real model IDs) ---
+  function populateModelDropdown(provider) {
+    els.model.innerHTML = '';
+    PROVIDERS[provider].models.forEach(id => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = id;   // real model ID as visible label
+      els.model.appendChild(opt);
+    });
+  }
+
+  // --- Init ---
+  function init() {
+    const loaded = loadHistory();
+    conversations = Array.isArray(loaded.conversations) ? loaded.conversations : [];
+    activeConversationId = loaded.activeConversationId || null;
+    normaliseConversations();
+    ensureActiveConversation();
+    renderMessages();
+    renderHistorySidebar();
+
+    const savedProvider = store.get('provider') || 'gemini';
+    els.provider.value = savedProvider;
+
+    populateModelDropdown(savedProvider);
+    updateProviderUI();
+
+    const savedModel = store.get(`model_${savedProvider}`);
+    if (savedModel && PROVIDERS[savedProvider].models.includes(savedModel)) {
+      els.model.value = savedModel;
+    }
+
+    const savedSystem = store.get('systemPrompt');
+    if (savedSystem) els.systemPrompt.value = savedSystem;
+
+    const savedSidebarCollapsed = store.get('sidebarCollapsed') === '1';
+    els.appShell.classList.toggle('sidebar-collapsed', savedSidebarCollapsed && !isSidebarMobile());
+    setSidebarOpen(false);
+
+    renderTotalTokens();
+    renderConversationTokens();
+  }
+
+  function updateProviderUI() {
+    const p   = els.provider.value;
+    const cfg = PROVIDERS[p];
+    els.providerHint.innerHTML = cfg.providerHint;
+    els.modelHint.textContent  = cfg.modelHint;
+    syncApiKeyInputForProvider(p);
+    populateModelDropdown(p);
+    const savedModel = store.get(`model_${p}`);
+    if (savedModel && cfg.models.includes(savedModel)) {
+      els.model.value = savedModel;
+    }
+  }
+
+  // --- Settings handlers ---
+  els.settingsBtn.addEventListener('click', () => els.settings.classList.toggle('open'));
+  els.sidebarToggle.addEventListener('click', () => {
+    toggleSidebar();
+    if (!isSidebarMobile()) {
+      store.set('sidebarCollapsed', els.appShell.classList.contains('sidebar-collapsed') ? '1' : '0');
+    }
+  });
+  els.sidebarBackdrop.addEventListener('click', () => setSidebarOpen(false));
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setSidebarOpen(false);
+  });
+  sidebarMobileMq.addEventListener('change', () => {
+    if (isSidebarMobile()) {
+      els.appShell.classList.remove('sidebar-collapsed');
+      setSidebarOpen(false);
+    } else {
+      setSidebarOpen(false);
+      const saved = store.get('sidebarCollapsed') === '1';
+      els.appShell.classList.toggle('sidebar-collapsed', saved);
+    }
+  });
+
+  els.provider.addEventListener('change', () => {
+    setProviderApiKey(apiInputProvider || els.provider.value, els.apiKey.value);
+    store.set('provider', els.provider.value);
+    updateProviderUI();
+    setStatus(statusWithModel('Ready', els.model.value));
+  });
+
+  els.model.addEventListener('change', () => {
+    store.set(`model_${els.provider.value}`, els.model.value);
+    setStatus(statusWithModel('Ready', els.model.value));
+  });
+
+  els.systemPrompt.addEventListener('change', () => {
+    store.set('systemPrompt', els.systemPrompt.value);
+  });
+  els.apiKey.addEventListener('input', () => {
+    const provider = els.provider.value;
+    setProviderApiKey(provider, els.apiKey.value);
+    syncApiKeyInputForProvider(provider);
+  });
+
+  els.exportBtn.addEventListener('click', () => {
+    if (isStreaming) {
+      flashStatus('Stop current response before exporting', true);
+      return;
+    }
+    exportAllConversations();
+  });
+  els.importBtn.addEventListener('click', () => {
+    if (isStreaming) {
+      flashStatus('Stop current response before importing', true);
+      return;
+    }
+    els.importFileInput.value = '';
+    els.importFileInput.click();
+  });
+  els.importFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      appendImportedConversations(parsed);
+    } catch (err) {
+      flashStatus(`Import failed: ${String(err.message || err)}`, true);
+    }
+  });
+  els.newConvBtn.addEventListener('click', () => {
+    if (isStreaming) {
+      flashStatus('Stop current response before switching conversation', true);
+      return;
+    }
+    newConversation();
+  });
+
+  // --- Example prompts ---
+  document.querySelectorAll('.example').forEach(btn => {
+    btn.addEventListener('click', () => {
+      els.input.value = btn.dataset.prompt;
+      els.input.focus();
+      autoResize();
+    });
+  });
+
+  // --- Textarea auto-resize ---
+  function autoResize() {
+    els.input.style.height = 'auto';
+    els.input.style.height = Math.min(els.input.scrollHeight, 180) + 'px';
+  }
+  els.input.addEventListener('input', autoResize);
+  els.input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  els.sendBtn.addEventListener('click', send);
+  els.stopBtn.addEventListener('click', () => {
+    if (!isStreaming || !activeRequestController) return;
+    setStatus('Stopping…');
+    activeRequestController.abort();
+  });
+  els.historyList.addEventListener('click', (e) => {
+    const delBtn = e.target.closest('.history-del');
+    if (delBtn) {
+      if (isStreaming) {
+        flashStatus('Stop current response before deleting conversation', true);
+        return;
+      }
+      const convId = delBtn.dataset.convId;
+      if (!convId) return;
+      deleteConversationById(convId);
+      flashStatus('Conversation deleted');
+      return;
+    }
+
+    const btn = e.target.closest('.history-item');
+    if (!btn) return;
+    const convId = btn.dataset.convId;
+    if (!convId || convId === activeConversationId) return;
+    if (isStreaming) {
+      flashStatus('Stop current response before switching conversation', true);
+      return;
+    }
+    setActiveConversation(convId);
+    if (isSidebarMobile()) setSidebarOpen(false);
+    setStatus(statusWithModel('Ready'));
+  });
+
+  // --- Render messages ---
+  function buildConversationRows() {
+    return conversations
+      .slice()
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+      .map(conv => {
+        const latest = [...(conv.messages || [])].reverse().find(m => m.role === 'user' || m.role === 'assistant') || { content: '' };
+        const snippet = (latest.content || '').replace(/\s+/g, ' ').trim().slice(0, 84);
+        return {
+          id: conv.id,
+          label: conv.title || 'New Conversation',
+          snippet: snippet || '(empty)'
+        };
+      });
+  }
+
+  function syncActiveConversationFromRows() {
+    if (!conversations.some(c => c.id === activeConversationId)) {
+      ensureActiveConversation();
+    }
+    const conv = ensureActiveConversation();
+    return conv.messages;
+  }
+
+  function getActiveHistory() {
+    return syncActiveConversationFromRows();
+  }
+
+  function saveAndRender() {
+    saveHistory();
+    renderMessages();
+    renderHistorySidebar();
+  }
+
+  function deleteConversationById(convId) {
+    conversations = conversations.filter(c => c.id !== convId);
+    if (conversations.length === 0) conversations.push(createConversation());
+    if (!conversations.some(c => c.id === activeConversationId)) {
+      activeConversationId = conversations[0].id;
+    }
+    saveAndRender();
+  }
+
+  function setActiveConversation(convId) {
+    if (!conversations.some(c => c.id === convId)) return;
+    activeConversationId = convId;
+    renderMessages();
+    renderHistorySidebar();
+  }
+
+  function activeConversation() {
+    return ensureActiveConversation();
+  }
+
+  function activeMessages() {
+    return activeConversation().messages;
+  }
+
+  function normaliseConversations() {
+    conversations = conversations.map(c => normalizeConversation(c));
+  }
+  normaliseConversations();
+
+  function isSidebarMobile() {
+    return sidebarMobileMq.matches;
+  }
+
+  function setSidebarOpen(open) {
+    const mobile = isSidebarMobile();
+    els.appShell.classList.toggle('sidebar-open', mobile && open);
+    els.sidebarBackdrop.hidden = !(mobile && open);
+    document.body.classList.toggle('no-scroll', mobile && open);
+  }
+
+  function toggleSidebar() {
+    if (isSidebarMobile()) {
+      setSidebarOpen(!els.appShell.classList.contains('sidebar-open'));
+      return;
+    }
+    els.appShell.classList.toggle('sidebar-collapsed');
+  }
+
+  function renderHistorySidebar() {
+    const list = buildConversationRows();
+    els.historyCount.textContent = String(list.length);
+    els.historyList.innerHTML = '';
+    els.historyEmpty.style.display = list.length ? 'none' : '';
+    list.forEach(item => {
+      const row = document.createElement('div');
+      row.className = `history-item${item.id === activeConversationId ? ' active' : ''}`;
+      row.dataset.convId = item.id;
+      row.innerHTML = `
+        <div class="history-top">
+          <span class="history-role">${item.label}</span>
+          <button class="history-del" data-conv-id="${item.id}" title="Delete this conversation">Delete</button>
+        </div>
+        <span class="history-snippet">${escapeHtml(item.snippet)}</span>
+      `;
+      els.historyList.appendChild(row);
+    });
+  }
+
+  function renderMessages() {
+    const msgs = activeMessages();
+    if (msgs.length === 0) {
+      els.empty.style.display = '';
+      els.messages.innerHTML = '';
+      els.messages.appendChild(els.empty);
+      renderConversationTokens();
+      renderHistorySidebar();
+      return;
+    }
+    els.empty.style.display = 'none';
+    els.messages.innerHTML = '';
+    msgs.forEach((m, idx) => {
+      const wrap = document.createElement('div');
+      wrap.className = `msg ${m.role}`;
+      wrap.dataset.msgIndex = String(idx);
+      wrap.innerHTML = `
+        <div class="role">${m.role === 'user' ? 'You' : m.role === 'error' ? 'Error' : 'Assistant'}</div>
+        <div class="bubble"></div>
+      `;
+      wrap.querySelector('.bubble').innerHTML = m.role === 'assistant'
+        ? renderMarkdown(m.content)
+        : escapeHtml(m.content);
+      els.messages.appendChild(wrap);
+    });
+    renderConversationTokens();
+    renderHistorySidebar();
+  }
+
+  // ── State machine: idle → thinking → typing → done ──────────────
+  const THINKING_PHRASES = [
+    'Reading your message…',
+    'Gathering thoughts…',
+    'Consulting the void…',
+    'Weighing possibilities…',
+    'Connecting the dots…',
+    'Forming a response…',
+    'Almost there…',
+  ];
+
+  // Typewriter config
+  const TYPE_SPEED_MS = 10;   // base ms per tick
+  const TYPE_VARIANCE = 7;    // ±ms jitter
+  const TYPE_BURST    = 4;    // chars per tick baseline
+
+  let _thinkTimer  = null;
+  let _typeQueue   = '';
+  let _typeTarget  = null;
+  let _typeRunning = false;
+  let _streamDone  = false;
+  let _currentWrap = null;
+
+  function scrollToBottom() {
+    const main = document.querySelector('main');
+    main.scrollTop = main.scrollHeight;
+  }
+
+  function setStatus(text, isWarn = false) {
+    if (statusFlashTimer) {
+      clearTimeout(statusFlashTimer);
+      statusFlashTimer = null;
+    }
+    statusStableText = text;
+    statusStableWarn = isWarn;
+    els.status.textContent = text;
+    els.status.classList.toggle('warn', isWarn);
+  }
+
+  function flashStatus(text, isWarn = false, ms = 3000) {
+    if (statusFlashTimer) clearTimeout(statusFlashTimer);
+    els.status.textContent = text;
+    els.status.classList.toggle('warn', isWarn);
+    statusFlashTimer = setTimeout(() => {
+      els.status.textContent = statusStableText;
+      els.status.classList.toggle('warn', statusStableWarn);
+      statusFlashTimer = null;
+    }, ms);
+  }
+
+  function statusWithModel(label, model = lastUsedModel || els.model.value || '') {
+    return model ? `${label} - ${model}` : label;
+  }
+
+  function setStreamingUI(active) {
+    els.sendBtn.disabled = active;
+    els.stopBtn.hidden = !active;
+  }
+
+  // ── THINKING phase ───────────────────────────────────────────────
+  function appendThinkingBubble() {
+    els.empty.style.display = 'none';
+    const wrap = document.createElement('div');
+    wrap.className = 'msg assistant';
+    wrap.innerHTML = `
+      <div class="role">Assistant</div>
+      <div class="bubble">
+        <div class="thinking-wrap">
+          <div class="thinking-badge">
+            <div class="thinking-dots"><span></span><span></span><span></span></div>
+            Thinking
+          </div>
+          <div class="thinking-phrase"></div>
+        </div>
+      </div>
+    `;
+    els.messages.appendChild(wrap);
+    _currentWrap = wrap;
+
+    let pi = 0;
+    const phraseEl = wrap.querySelector('.thinking-phrase');
+    phraseEl.textContent = THINKING_PHRASES[0];
+    _thinkTimer = setInterval(() => {
+      pi = (pi + 1) % THINKING_PHRASES.length;
+      phraseEl.style.opacity = '0';
+      setTimeout(() => {
+        phraseEl.textContent = THINKING_PHRASES[pi];
+        phraseEl.style.opacity = '1';
+      }, 260);
+    }, 1800);
+
+    scrollToBottom();
+    return wrap;
+  }
+
+  function stopThinking() {
+    if (_thinkTimer) { clearInterval(_thinkTimer); _thinkTimer = null; }
+  }
+
+  // ── TYPING phase ─────────────────────────────────────────────────
+  function transitionToTyping(wrap) {
+    stopThinking();
+    wrap.classList.add('is-typing');
+    const bubble = wrap.querySelector('.bubble');
+    bubble.innerHTML = '<span class="text"></span><span class="cursor"></span>';
+    _typeTarget  = bubble.querySelector('.text');
+    _typeQueue   = '';
+    _typeRunning = false;
+    _streamDone  = false;
+  }
+
+  function enqueueChars(chunk) {
+    _typeQueue += chunk;
+    if (!_typeRunning) runTypewriter();
+  }
+
+  function runTypewriter() {
+    if (!_typeTarget) return;
+    _typeRunning = true;
+
+    function tick() {
+      if (_typeQueue.length === 0) {
+        if (_streamDone) finaliseTyping();
+        else _typeRunning = false;
+        return;
+      }
+      // Adaptive burst: catch up when queue builds up
+      const burst = _typeQueue.length > 120 ? TYPE_BURST * 5
+                  : _typeQueue.length > 40  ? TYPE_BURST * 2
+                  : TYPE_BURST;
+      _typeTarget.textContent += _typeQueue.slice(0, burst);
+      _typeQueue = _typeQueue.slice(burst);
+      scrollToBottom();
+      const jitter = Math.random() * TYPE_VARIANCE * 2 - TYPE_VARIANCE;
+      setTimeout(tick, Math.max(1, TYPE_SPEED_MS + jitter));
+    }
+    tick();
+  }
+
+  function finaliseTyping() {
+    if (!_currentWrap) return;
+    _currentWrap.classList.remove('is-typing');
+    _currentWrap.querySelector('.cursor')?.remove();
+    if (_typeTarget) _typeTarget.closest('.bubble').innerHTML = renderMarkdown(_typeTarget.textContent + (_typeQueue || ''));
+    _currentWrap = null;
+    _typeTarget  = null;
+    _typeRunning = false;
+  }
+
+  function flushTypingNow() {
+    if (!_typeTarget) return '';
+    if (_typeQueue) {
+      _typeTarget.textContent += _typeQueue;
+      _typeQueue = '';
+    }
+    const text = _typeTarget.textContent || '';
+    finaliseTyping();
+    return text;
+  }
+
+  // --- Send ---
+  async function send() {
+    if (isStreaming) return;
+    const text = els.input.value.trim();
+    if (!text) return;
+
+    const provider = els.provider.value;
+    const model    = els.model.value || PROVIDERS[provider].defaultModel;
+    const apiKey   = getProviderApiKey(provider);
+
+    if (!apiKey) {
+      setStatus(`No key for "${provider}" — add in API Key field`, true);
+      return;
+    }
+
+    const conv = activeConversation();
+    conv.messages.push({ role: 'user', content: text });
+    touchConversation(conv);
+    lastUsedModel = model;
+    renderMessages();
+    saveHistory();
+    els.input.value = '';
+    autoResize();
+
+    isStreaming = true;
+    activeRequestController = new AbortController();
+    setStreamingUI(true);
+
+    // ── Phase 1: THINKING ──
+    setStatus('Thinking…');
+    const wrap = appendThinkingBubble();
+    scrollToBottom();
+
+    let full = '';
+    let typingStarted = false;
+
+    try {
+      const sysPrompt = els.systemPrompt.value.trim();
+      const reqInTokens = addInputTokens(conv.messages.filter(m => m.role !== 'error'), sysPrompt);
+      conv.tokenIn += reqInTokens;
+      renderConversationTokens();
+
+      const onChunk = (chunk) => {
+        full += chunk;
+
+        // ── Phase 2: first chunk → transition to TYPING ──
+        if (!typingStarted) {
+          typingStarted = true;
+          transitionToTyping(wrap);
+          setStatus(`Typing · ${provider} · ${model}`);
+        }
+        enqueueChars(chunk);
+      };
+
+      if (provider === 'gemini') {
+        await streamGemini({ apiKey, model, history: conv.messages, system: sysPrompt, onChunk, signal: activeRequestController.signal });
+      } else {
+        await streamOpenAICompatible({ provider, apiKey, model, history: conv.messages, system: sysPrompt, onChunk, signal: activeRequestController.signal });
+      }
+
+      // ── Phase 3: stream done — let typewriter drain ──
+      _streamDone = true;
+      if (!_typeRunning && _typeQueue.length === 0) {
+        finaliseTyping();
+      } else if (!_typeRunning) {
+        runTypewriter(); // drain remaining queue
+      }
+
+      const respOutTokens = addOutputTokens(full);
+      conv.tokenOut += respOutTokens;
+      conv.messages.push({ role: 'assistant', content: full });
+      touchConversation(conv);
+      renderConversationTokens();
+      saveHistory();
+      setStatus(statusWithModel('Ready', model));
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        stopThinking();
+        let partial = '';
+        if (typingStarted) {
+          partial = flushTypingNow().trim();
+        } else {
+          if (_currentWrap) { _currentWrap.remove(); _currentWrap = null; }
+          else wrap.remove();
+        }
+        const finalText = (partial || full || '').trim();
+        if (finalText) {
+          conv.messages.push({ role: 'assistant', content: finalText });
+          const partialOutTokens = addOutputTokens(finalText);
+          conv.tokenOut += partialOutTokens;
+          touchConversation(conv);
+          renderConversationTokens();
+          saveHistory();
+          setStatus(statusWithModel('Stopped · Partial response saved', model));
+        } else {
+          setStatus(statusWithModel('Stopped', model));
+        }
+        return;
+      }
+      stopThinking();
+      finaliseTyping();
+      if (_currentWrap) { _currentWrap.remove(); _currentWrap = null; }
+      else wrap.remove();
+      conv.messages.push({ role: 'error', content: String(err.message || err) });
+      touchConversation(conv);
+      renderMessages();
+      saveHistory();
+      setStatus('Request failed', true);
+    } finally {
+      isStreaming = false;
+      activeRequestController = null;
+      setStreamingUI(false);
+    }
+  }
+
+  // --- Streaming: OpenAI-compatible (Groq, OpenRouter) ---
+  async function streamOpenAICompatible({ provider, apiKey, model, history, system, onChunk, signal }) {
+    const url = provider === 'groq'
+      ? 'https://api.groq.com/openai/v1/chat/completions'
+      : 'https://openrouter.ai/api/v1/chat/completions';
+
+    const messages = [];
+    if (system) messages.push({ role: 'system', content: system });
+    history.filter(m => m.role !== 'error').forEach(m => {
+      messages.push({ role: m.role, content: m.content });
+    });
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    };
+    if (provider === 'openrouter') {
+      headers['HTTP-Referer'] = window.location.origin || 'http://localhost';
+      headers['X-Title'] = 'Atelier Free AI Chat';
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ model, messages, stream: true }),
+      signal
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 400)}`);
+    }
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) continue;
+        const data = trimmed.slice(5).trim();
+        if (data === '[DONE]') return;
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed.choices?.[0]?.delta?.content;
+          if (delta) onChunk(delta);
+        } catch { /* ignore partial frames */ }
+      }
+    }
+  }
+
+  // --- Streaming: Gemini ---
+  async function streamGemini({ apiKey, model, history, system, onChunk, signal }) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+
+    const contents = history
+      .filter(m => m.role !== 'error')
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      }));
+
+    const body = { contents };
+    if (system) body.systemInstruction = { parts: [{ text: system }] };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 400)}`);
+    }
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) continue;
+        const data = trimmed.slice(5).trim();
+        if (!data) continue;
+        try {
+          const parsed = JSON.parse(data);
+          const text = parsed.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join('');
+          if (text) onChunk(text);
+        } catch { /* skip partial */ }
+      }
+    }
+  }
+
+  // --- Boot ---
+  init();
+  setStatus(statusWithModel('Ready'));
+</script>
+
+</body>
+</html>
