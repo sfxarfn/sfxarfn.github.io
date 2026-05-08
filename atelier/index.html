@@ -1497,11 +1497,27 @@
   // --- Token tracking — persisted in cookies ---
   const COOKIE_IN  = 'atelier_tok_in';
   const COOKIE_OUT = 'atelier_tok_out';
+  const TOKENS_STORE_KEY = 'atelier_tok_totals';
 
-  const tokens = {
-    input:  parseInt(cookie.get(COOKIE_IN)  || '0', 10),
-    output: parseInt(cookie.get(COOKIE_OUT) || '0', 10),
-  };
+  function readStoredTokens() {
+    // Prefer localStorage. Migrate old cookie values if present.
+    try {
+      const raw = store.get(TOKENS_STORE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          input: Number(parsed?.input || 0),
+          output: Number(parsed?.output || 0),
+        };
+      }
+    } catch { /* ignore corrupted token payload */ }
+    return {
+      input: parseInt(cookie.get(COOKIE_IN) || '0', 10) || 0,
+      output: parseInt(cookie.get(COOKIE_OUT) || '0', 10) || 0,
+    };
+  }
+
+  const tokens = readStoredTokens();
 
   function estimateTokens(text) {
     return Math.ceil((text || '').length / 4);
@@ -1526,6 +1542,11 @@
   }
 
   function persistTokens() {
+    store.set(TOKENS_STORE_KEY, JSON.stringify({
+      input: Number(tokens.input || 0),
+      output: Number(tokens.output || 0),
+    }));
+    // Keep legacy cookies for compatibility.
     cookie.set(COOKIE_IN,  String(tokens.input));
     cookie.set(COOKIE_OUT, String(tokens.output));
   }
@@ -1555,6 +1576,7 @@
     if (!confirm('Reset the token counter to zero?')) return;
     tokens.input = 0;
     tokens.output = 0;
+    store.del(TOKENS_STORE_KEY);
     cookie.del(COOKIE_IN);
     cookie.del(COOKIE_OUT);
     renderTotalTokens();
