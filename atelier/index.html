@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark-mode" lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -22,6 +22,18 @@
     --serif: 'Fraunces', Georgia, serif;
     --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  body.dark-mode {
+    --bg: #27211b;
+    --bg-elev: #2d2720;
+    --ink: #e6e0d6;
+    --muted: #a7adb7;
+    --line: #2c3139;
+    --accent: #7ec7a5;
+    --accent-soft: #1f2f29;
+    --user-bg: #e6e0d6;
+    --user-fg: #121417;
+    --error: #ff8f87;
   }
 
   * { box-sizing: border-box; }
@@ -204,6 +216,9 @@
     background: rgba(20, 20, 20, 0.35);
     z-index: 25;
   }
+  body.dark-mode .sidebar-backdrop {
+    background: rgba(0, 0, 0, 0.62);
+  }
 
   header {
     border-bottom: 1px solid var(--line);
@@ -309,6 +324,21 @@
     transition: border-color 0.15s ease;
   }
   .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field textarea {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s ease;
+    resize: vertical;
+    min-height: 90px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  .field textarea:focus { border-color: var(--accent); }
 
   .field .hint { font-size: 11px; color: var(--muted); }
   .field .hint a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
@@ -369,7 +399,7 @@
     letter-spacing: 0.1em;
     color: var(--muted);
   }
-  .msg.user .role { color: var(--ink); }
+  .msg.user .role { color: var(--ink); align-self: flex-end; }
   .msg.assistant .role { color: var(--accent); }
 
   .bubble {
@@ -384,8 +414,8 @@
   .msg.user .bubble {
     background: var(--user-bg);
     color: var(--user-fg);
-    align-self: flex-start;
     max-width: 85%;
+    align-self: flex-end;
   }
   .msg.assistant .bubble { background: transparent; padding-left: 0; padding-right: 0; }
   .msg.error .bubble {
@@ -523,6 +553,44 @@
     transition: border-color 0.15s ease;
   }
   .composer:focus-within { border-color: var(--accent); }
+  .composer-wrap {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .slash-suggest {
+    margin-top: 6px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg-elev);
+    padding: 7px;
+    display: none;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .slash-suggest.open { display: flex; }
+  .slash-chip {
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    border-radius: 7px;
+    padding: 5px 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .slash-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .slash-suggest-empty {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    padding: 2px 4px;
+  }
 
   .composer textarea {
     flex: 1;
@@ -656,6 +724,85 @@
     white-space: nowrap;
   }
   .token-reset:hover { border-color: var(--error); color: var(--error); }
+
+  /* Export options popup */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    z-index: 80;
+  }
+  body.dark-mode .modal-backdrop {
+    background: rgba(0, 0, 0, 0.72);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    width: min(420px, 100%);
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
+  }
+  .modal.skill-modal { width: min(760px, 100%); }
+  .modal-title {
+    margin: 0 0 6px;
+    font-family: var(--serif);
+    font-size: 22px;
+    font-style: italic;
+  }
+  .modal-copy {
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .modal-btn {
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: all 0.15s ease;
+  }
+  .modal-btn:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .modal-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .modal-btn.primary:hover { opacity: 0.88; }
+  .modal-textarea {
+    width: 100%;
+    min-height: 150px;
+    resize: vertical;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 11px;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .modal-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
 </style>
 </head>
 <body>
@@ -710,6 +857,8 @@
   <div class="toolbar">
     <button class="icon-btn" id="newConvBtn" title="Start new conversation">New</button>
     <button class="icon-btn" id="settingsBtn">Settings</button>
+    <button class="icon-btn" id="skillManagerBtn" title="Open skill manager">Skills</button>
+    <button class="icon-btn" id="themeBtn" title="Toggle dark mode">theme: light</button>
   </div>
 </header>
 
@@ -717,8 +866,8 @@
   <div class="field">
     <label for="provider">Provider</label>
     <select id="provider">
-      <option value="gemini">Google Gemini</option>
-      <option value="groq">Groq</option>
+      <!-- <option value="gemini">Google Gemini</option> -->
+      <!-- <option value="groq">Groq</option> -->
       <option value="openrouter">OpenRouter</option>
     </select>
     <div class="hint" id="providerHint"></div>
@@ -757,10 +906,13 @@
 </main>
 
 <footer>
-  <div class="composer">
-    <textarea id="input" rows="1" placeholder="Type a message… (Enter to send, Shift+Enter for newline)"></textarea>
-    <button class="send" id="sendBtn">Send</button>
-    <button class="stop" id="stopBtn" hidden>Stop</button>
+  <div class="composer-wrap">
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Type a message… (Enter to send, Shift+Enter for newline)"></textarea>
+      <button class="send" id="sendBtn">Send</button>
+      <button class="stop" id="stopBtn" hidden>Stop</button>
+    </div>
+    <div class="slash-suggest" id="slashSuggest"></div>
   </div>
   <div class="status" id="status"></div>
   <div class="token-bar conversation">
@@ -784,6 +936,58 @@
     </div>
   </div>
 </footer>
+<div class="modal-backdrop" id="exportModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="exportModalTitle">
+    <h3 class="modal-title" id="exportModalTitle">Export Conversations</h3>
+    <p class="modal-copy">Choose export destination.</p>
+    <div class="modal-actions">
+      <button class="modal-btn primary" id="exportJsonBtn">Download JSON</button>
+      <button class="modal-btn" id="exportClipboardBtn">Copy JSON to Clipboard</button>
+      <button class="modal-btn" id="exportCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop" id="importModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
+    <h3 class="modal-title" id="importModalTitle">Import Conversations</h3>
+    <p class="modal-copy">Upload file, or paste JSON below.</p>
+    <div class="modal-actions" style="margin-bottom: 10px;">
+      <button class="modal-btn" id="importUploadOptionBtn">Upload JSON File</button>
+    </div>
+    <textarea class="modal-textarea" id="importTextInput" placeholder="Paste JSON here..."></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn primary" id="importTextSubmitBtn">Import JSON</button>
+      <button class="modal-btn" id="importCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop" id="skillModal" hidden>
+  <div class="modal skill-modal" role="dialog" aria-modal="true" aria-labelledby="skillModalTitle">
+    <h3 class="modal-title" id="skillModalTitle">Skill Manager</h3>
+    <p class="modal-copy">Manage skill sets. Trigger in chat with /skill-foo.</p>
+    <div class="field" style="margin-bottom: 10px;">
+      <label for="skillActive">Active Skill Set</label>
+      <select id="skillActive"></select>
+      <div class="hint" id="skillHint">Trigger in chat with /skill-foo.</div>
+    </div>
+    <div class="field">
+      <label for="skillName">Skill Set Editor</label>
+      <input type="text" id="skillName" placeholder="Skill name, e.g. concise" />
+      <textarea id="skillStyle" placeholder="Response style instruction..."></textarea>
+      <textarea id="skillTemplate" placeholder="Template response format..."></textarea>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="icon-btn" id="skillSaveBtn" type="button">Save Skill</button>
+        <button class="icon-btn" id="skillDeleteBtn" type="button">Delete Skill</button>
+        <button class="icon-btn" id="skillNewBtn" type="button">New</button>
+        <button class="icon-btn" id="skillExportBtn" type="button">Export Skills</button>
+        <button class="icon-btn" id="skillCopyBtn" type="button">Copy Skills</button>
+        <button class="icon-btn" id="skillImportBtn" type="button">Import Skills</button>
+        <button class="icon-btn" id="skillCloseBtn" type="button">Close</button>
+      </div>
+      <input type="file" id="skillImportFileInput" accept="application/json,.json" hidden />
+    </div>
+  </div>
+</div>
 </div>
 </div>
 
@@ -809,6 +1013,19 @@
   const HISTORY_MAX = 40; // max messages per conversation
   const API_KEY_COOKIE_PREFIX = 'atelier_api_key_';
   const API_KEY_STORE_PREFIX = 'atelier_api_key_fallback_';
+  const SKILLS_KEY = 'atelier_skills';
+  const ACTIVE_SKILL_KEY = 'atelier_active_skill';
+
+  const DEFAULT_SKILLS = {
+    concise: {
+      style: 'Use short direct responses. Prioritize key points.',
+      template: 'Answer:\n- Summary: ...\n- Details: ...\n- Next step: ...'
+    },
+    teacher: {
+      style: 'Explain clearly with simple progression from basic to advanced.',
+      template: 'Explain:\n1. Concept\n2. Example\n3. Practical tip'
+    }
+  };
 
   // --- localStorage helpers (provider/model/system prefs) ---
   const memStore = {};
@@ -872,14 +1089,31 @@
     apiKey:       document.getElementById('apiKey'),
     apiKeyHint:   document.getElementById('apiKeyHint'),
     systemPrompt: document.getElementById('systemPrompt'),
+    skillActive:   document.getElementById('skillActive'),
+    skillHint:     document.getElementById('skillHint'),
+    skillName:     document.getElementById('skillName'),
+    skillStyle:    document.getElementById('skillStyle'),
+    skillTemplate: document.getElementById('skillTemplate'),
+    skillSaveBtn:  document.getElementById('skillSaveBtn'),
+    skillDeleteBtn:document.getElementById('skillDeleteBtn'),
+    skillNewBtn:   document.getElementById('skillNewBtn'),
+    skillExportBtn:document.getElementById('skillExportBtn'),
+    skillCopyBtn:  document.getElementById('skillCopyBtn'),
+    skillImportBtn:document.getElementById('skillImportBtn'),
+    skillImportFileInput:document.getElementById('skillImportFileInput'),
     providerHint: document.getElementById('providerHint'),
     modelHint:    document.getElementById('modelHint'),
     settings:     document.getElementById('settings'),
     settingsBtn:  document.getElementById('settingsBtn'),
+    skillManagerBtn: document.getElementById('skillManagerBtn'),
+    skillModal:   document.getElementById('skillModal'),
+    skillCloseBtn: document.getElementById('skillCloseBtn'),
+    themeBtn:     document.getElementById('themeBtn'),
     newConvBtn:   document.getElementById('newConvBtn'),
     messages:     document.getElementById('messages'),
     empty:        document.getElementById('empty'),
     input:        document.getElementById('input'),
+    slashSuggest: document.getElementById('slashSuggest'),
     sendBtn:      document.getElementById('sendBtn'),
     stopBtn:      document.getElementById('stopBtn'),
     status:       document.getElementById('status'),
@@ -894,6 +1128,15 @@
     historyEmpty: document.getElementById('historyEmpty'),
     historyCount: document.getElementById('historyCount'),
     exportBtn:    document.getElementById('exportBtn'),
+    exportModal:  document.getElementById('exportModal'),
+    exportJsonBtn: document.getElementById('exportJsonBtn'),
+    exportClipboardBtn: document.getElementById('exportClipboardBtn'),
+    exportCancelBtn: document.getElementById('exportCancelBtn'),
+    importModal:  document.getElementById('importModal'),
+    importUploadOptionBtn: document.getElementById('importUploadOptionBtn'),
+    importTextInput: document.getElementById('importTextInput'),
+    importTextSubmitBtn: document.getElementById('importTextSubmitBtn'),
+    importCancelBtn: document.getElementById('importCancelBtn'),
     importBtn:    document.getElementById('importBtn'),
     importFileInput: document.getElementById('importFileInput'),
   };
@@ -908,6 +1151,8 @@
   let statusFlashTimer = null;
   let apiInputProvider = null;
   const sidebarMobileMq = window.matchMedia('(max-width: 980px)');
+  let skillSets = {};
+  let activeSkillName = '';
 
   function makeConversationId() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -951,13 +1196,17 @@
     };
   }
 
-  function exportAllConversations() {
-    const payload = {
+  function getExportPayload() {
+    return {
       schema: 'atelier.conversations.v1',
       exportedAt: new Date().toISOString(),
       activeConversationId,
       conversations: conversations.map(c => normalizeConversation(c))
     };
+  }
+
+  function exportAllConversations() {
+    const payload = getExportPayload();
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -969,6 +1218,56 @@
     a.remove();
     URL.revokeObjectURL(url);
     flashStatus('Conversations exported');
+  }
+
+  async function exportConversationsToClipboard() {
+    const payload = getExportPayload();
+    const jsonText = JSON.stringify(payload, null, 2);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(jsonText);
+      flashStatus('Conversations copied to clipboard');
+      return;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = jsonText;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    ta.style.pointerEvents = 'none';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    if (!ok) throw new Error('Clipboard unavailable');
+    flashStatus('Conversations copied to clipboard');
+  }
+
+  function setExportModalOpen(open) {
+    els.exportModal.classList.toggle('open', open);
+    els.exportModal.hidden = !open;
+  }
+
+  function setImportModalOpen(open) {
+    els.importModal.classList.toggle('open', open);
+    els.importModal.hidden = !open;
+    if (open) {
+      els.importTextInput.value = '';
+      setTimeout(() => els.importTextInput.focus(), 0);
+    }
+  }
+
+  function setSkillModalOpen(open) {
+    els.skillModal.classList.toggle('open', open);
+    els.skillModal.hidden = !open;
+    if (open) {
+      fillSkillEditor(activeSkillName || els.skillName.value || '');
+      setTimeout(() => els.skillName.focus(), 0);
+    }
+  }
+
+  function importFromJsonText(rawText) {
+    const parsed = JSON.parse(rawText);
+    appendImportedConversations(parsed);
   }
 
   function appendImportedConversations(parsed) {
@@ -1295,6 +1594,9 @@
 
     const savedSystem = store.get('systemPrompt');
     if (savedSystem) els.systemPrompt.value = savedSystem;
+    initSkillSets();
+    const savedTheme = store.get('theme') || 'light';
+    applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
 
     const savedSidebarCollapsed = store.get('sidebarCollapsed') === '1';
     els.appShell.classList.toggle('sidebar-collapsed', savedSidebarCollapsed && !isSidebarMobile());
@@ -1317,8 +1619,216 @@
     }
   }
 
+  function normalizeSkillName(name) {
+    return String(name || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  }
+
+  function normalizeSkillSetMap(raw) {
+    const out = {};
+    const src = (raw && typeof raw === 'object') ? raw : {};
+    Object.entries(src).forEach(([k, v]) => {
+      const key = normalizeSkillName(k);
+      if (!key) return;
+      const style = String(v?.style || '').trim();
+      const template = String(v?.template || '').trim();
+      if (!style && !template) return;
+      out[key] = { style, template };
+    });
+    return out;
+  }
+
+  function saveSkillSets() {
+    store.set(SKILLS_KEY, JSON.stringify(skillSets));
+  }
+
+  function getSkillExportPayload() {
+    return {
+      schema: 'atelier.skills.v1',
+      exportedAt: new Date().toISOString(),
+      activeSkillName,
+      skills: skillSets
+    };
+  }
+
+  function exportSkillsAsFile() {
+    const payload = getSkillExportPayload();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    a.href = url;
+    a.download = `atelier-skills-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    flashStatus('Skills exported');
+  }
+
+  async function exportSkillsToClipboard() {
+    const jsonText = JSON.stringify(getSkillExportPayload(), null, 2);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(jsonText);
+      flashStatus('Skills copied to clipboard');
+      return;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = jsonText;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    ta.style.pointerEvents = 'none';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    if (!ok) throw new Error('Clipboard unavailable');
+    flashStatus('Skills copied to clipboard');
+  }
+
+  function appendImportedSkills(parsed) {
+    const incomingRaw = parsed?.skills && typeof parsed.skills === 'object' ? parsed.skills : parsed;
+    const incoming = normalizeSkillSetMap(incomingRaw);
+    const keys = Object.keys(incoming);
+    if (keys.length === 0) throw new Error('No valid skills found');
+    skillSets = { ...skillSets, ...incoming };
+    saveSkillSets();
+    if (parsed?.activeSkillName) setActiveSkill(parsed.activeSkillName);
+    renderSkillOptions();
+    fillSkillEditor(activeSkillName || keys[0]);
+    flashStatus(`Imported ${keys.length} skill${keys.length > 1 ? 's' : ''}`);
+  }
+
+  function renderSkillHint() {
+    const active = activeSkillName ? `Active: ${activeSkillName}` : 'Active: none';
+    els.skillHint.textContent = `${active}. Trigger in chat with /skill-foo`;
+  }
+
+  function renderSkillOptions() {
+    const names = Object.keys(skillSets).sort();
+    els.skillActive.innerHTML = '';
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = 'New skill';
+    els.skillActive.appendChild(none);
+    names.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      els.skillActive.appendChild(opt);
+    });
+    if (activeSkillName && !skillSets[activeSkillName]) activeSkillName = '';
+    els.skillActive.value = activeSkillName;
+    renderSkillHint();
+    renderSlashSuggestions();
+  }
+
+  function setActiveSkill(name, persist = true) {
+    const key = normalizeSkillName(name);
+    activeSkillName = skillSets[key] ? key : '';
+    if (persist) store.set(ACTIVE_SKILL_KEY, activeSkillName);
+    renderSkillOptions();
+  }
+
+  function fillSkillEditor(name = '') {
+    const key = normalizeSkillName(name);
+    const skill = skillSets[key] || { style: '', template: '' };
+    els.skillName.value = key;
+    els.skillStyle.value = skill.style;
+    els.skillTemplate.value = skill.template;
+  }
+
+  function getActiveSkillSystemPrompt() {
+    if (!activeSkillName || !skillSets[activeSkillName]) return '';
+    const skill = skillSets[activeSkillName];
+    const chunks = [
+      `Active skill: ${activeSkillName}`,
+      skill.style ? `Style instruction:\n${skill.style}` : '',
+      skill.template ? `Response template:\n${skill.template}` : '',
+      'Follow active skill style and template for this response.'
+    ].filter(Boolean);
+    return chunks.join('\n\n');
+  }
+
+  function handleSkillCommandInText(rawText) {
+    const m = rawText.match(/^\/skill-([a-z0-9_-]+)\b/i);
+    if (!m) return { handled: false, text: rawText };
+    const wanted = normalizeSkillName(m[1]);
+    if (wanted === 'none' || wanted === 'off') {
+      setActiveSkill('');
+      return { handled: true, text: rawText.replace(/^\/skill-[a-z0-9_-]+\s*/i, '').trim(), info: 'Skill disabled' };
+    }
+    if (!skillSets[wanted]) {
+      return { handled: true, text: '', error: `Unknown skill: ${wanted}` };
+    }
+    setActiveSkill(wanted);
+    fillSkillEditor(wanted);
+    return { handled: true, text: rawText.replace(/^\/skill-[a-z0-9_-]+\s*/i, '').trim(), info: `Active skill: ${wanted}` };
+  }
+
+  function renderSlashSuggestions() {
+    const raw = els.input.value || '';
+    const slashIndex = raw.lastIndexOf('/');
+    if (slashIndex === -1) {
+      hideSlashSuggestions();
+      return;
+    }
+    const q = raw.toLowerCase().slice(slashIndex + 1).trim();
+    const commands = [...Object.keys(skillSets).sort().map(name => `/skill-${name}`), '/skill-off'];
+    const filtered = commands.filter(cmd => cmd.slice(1).startsWith(q)).slice(0, 8);
+    els.slashSuggest.innerHTML = '';
+    if (filtered.length === 0) {
+      const empty = document.createElement('span');
+      empty.className = 'slash-suggest-empty';
+      empty.textContent = 'No skill command match';
+      els.slashSuggest.appendChild(empty);
+    } else {
+      filtered.forEach(cmd => {
+        const btn = document.createElement('button');
+        btn.className = 'slash-chip';
+        btn.type = 'button';
+        btn.textContent = cmd;
+        btn.dataset.command = cmd;
+        els.slashSuggest.appendChild(btn);
+      });
+    }
+    els.slashSuggest.classList.add('open');
+  }
+
+  function hideSlashSuggestions() {
+    els.slashSuggest.classList.remove('open');
+    els.slashSuggest.innerHTML = '';
+  }
+
+  function initSkillSets() {
+    const rawSkills = store.get(SKILLS_KEY);
+    let parsed = {};
+    try { parsed = JSON.parse(rawSkills || '{}'); } catch { parsed = {}; }
+    // Seed defaults only when no persisted skills exist yet.
+    skillSets = rawSkills === null
+      ? normalizeSkillSetMap(DEFAULT_SKILLS)
+      : normalizeSkillSetMap(parsed);
+    saveSkillSets();
+    const savedActive = normalizeSkillName(store.get(ACTIVE_SKILL_KEY) || '');
+    activeSkillName = skillSets[savedActive] ? savedActive : '';
+    renderSkillOptions();
+    fillSkillEditor(activeSkillName || Object.keys(skillSets).sort()[0] || '');
+  }
+
+  function applyTheme(theme) {
+    const dark = theme === 'dark';
+    document.body.classList.toggle('dark-mode', dark);
+    els.themeBtn.textContent = `theme: ${dark ? 'dark' : 'light'}`;
+    els.themeBtn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+  }
+
   // --- Settings handlers ---
   els.settingsBtn.addEventListener('click', () => els.settings.classList.toggle('open'));
+  els.themeBtn.addEventListener('click', () => {
+    const next = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+    applyTheme(next);
+    store.set('theme', next);
+  });
   els.sidebarToggle.addEventListener('click', () => {
     toggleSidebar();
     if (!isSidebarMobile()) {
@@ -1327,7 +1837,12 @@
   });
   els.sidebarBackdrop.addEventListener('click', () => setSidebarOpen(false));
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') setSidebarOpen(false);
+    if (e.key === 'Escape') {
+      setSidebarOpen(false);
+      setExportModalOpen(false);
+      setImportModalOpen(false);
+      setSkillModalOpen(false);
+    }
   });
   sidebarMobileMq.addEventListener('change', () => {
     if (isSidebarMobile()) {
@@ -1338,6 +1853,7 @@
       const saved = store.get('sidebarCollapsed') === '1';
       els.appShell.classList.toggle('sidebar-collapsed', saved);
     }
+    updateInputPlaceholder();
   });
 
   els.provider.addEventListener('change', () => {
@@ -1355,6 +1871,84 @@
   els.systemPrompt.addEventListener('change', () => {
     store.set('systemPrompt', els.systemPrompt.value);
   });
+  els.skillManagerBtn.addEventListener('click', () => setSkillModalOpen(true));
+  els.skillCloseBtn.addEventListener('click', () => setSkillModalOpen(false));
+  els.skillModal.addEventListener('click', (e) => {
+    if (e.target === els.skillModal) setSkillModalOpen(false);
+  });
+  els.slashSuggest.addEventListener('click', (e) => {
+    const btn = e.target.closest('.slash-chip');
+    if (!btn) return;
+    const cmd = btn.dataset.command || '';
+    if (!cmd) return;
+    const raw = els.input.value || '';
+    const slashIndex = raw.lastIndexOf('/');
+    const prefix = slashIndex >= 0 ? raw.slice(0, slashIndex) : '';
+    els.input.value = `${prefix}${cmd} `;
+    hideSlashSuggestions();
+    autoResize();
+    els.input.focus();
+  });
+  els.skillActive.addEventListener('change', () => {
+    setActiveSkill(els.skillActive.value);
+    fillSkillEditor(activeSkillName);
+    flashStatus(activeSkillName ? `Skill active: ${activeSkillName}` : 'Skill disabled');
+  });
+  els.skillSaveBtn.addEventListener('click', () => {
+    const key = normalizeSkillName(els.skillName.value);
+    const style = els.skillStyle.value.trim();
+    const template = els.skillTemplate.value.trim();
+    if (!key) {
+      flashStatus('Skill name required', true);
+      return;
+    }
+    if (!style && !template) {
+      flashStatus('Style or template required', true);
+      return;
+    }
+    skillSets[key] = { style, template };
+    saveSkillSets();
+    setActiveSkill(key);
+    fillSkillEditor(key);
+    flashStatus(`Skill saved: ${key}`);
+  });
+  els.skillDeleteBtn.addEventListener('click', () => {
+    const key = normalizeSkillName(els.skillName.value);
+    if (!key || !skillSets[key]) {
+      flashStatus('Skill not found', true);
+      return;
+    }
+    delete skillSets[key];
+    saveSkillSets();
+    if (activeSkillName === key) setActiveSkill('');
+    renderSkillOptions();
+    fillSkillEditor('');
+    flashStatus(`Skill deleted: ${key}`);
+  });
+  els.skillNewBtn.addEventListener('click', () => fillSkillEditor(''));
+  els.skillExportBtn.addEventListener('click', exportSkillsAsFile);
+  els.skillCopyBtn.addEventListener('click', async () => {
+    try {
+      await exportSkillsToClipboard();
+    } catch (err) {
+      flashStatus(`Copy failed: ${String(err.message || err)}`, true);
+    }
+  });
+  els.skillImportBtn.addEventListener('click', () => {
+    els.skillImportFileInput.value = '';
+    els.skillImportFileInput.click();
+  });
+  els.skillImportFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      appendImportedSkills(parsed);
+    } catch (err) {
+      flashStatus(`Skill import failed: ${String(err.message || err)}`, true);
+    }
+  });
   els.apiKey.addEventListener('input', () => {
     const provider = els.provider.value;
     setProviderApiKey(provider, els.apiKey.value);
@@ -1366,23 +1960,59 @@
       flashStatus('Stop current response before exporting', true);
       return;
     }
+    setExportModalOpen(true);
+  });
+  els.exportJsonBtn.addEventListener('click', () => {
+    setExportModalOpen(false);
     exportAllConversations();
+  });
+  els.exportClipboardBtn.addEventListener('click', async () => {
+    setExportModalOpen(false);
+    try {
+      await exportConversationsToClipboard();
+    } catch (err) {
+      flashStatus(`Copy failed: ${String(err.message || err)}`, true);
+    }
+  });
+  els.exportCancelBtn.addEventListener('click', () => setExportModalOpen(false));
+  els.exportModal.addEventListener('click', (e) => {
+    if (e.target === els.exportModal) setExportModalOpen(false);
   });
   els.importBtn.addEventListener('click', () => {
     if (isStreaming) {
       flashStatus('Stop current response before importing', true);
       return;
     }
+    setImportModalOpen(true);
+  });
+  els.importUploadOptionBtn.addEventListener('click', () => {
+    setImportModalOpen(false);
     els.importFileInput.value = '';
     els.importFileInput.click();
+  });
+  els.importCancelBtn.addEventListener('click', () => setImportModalOpen(false));
+  els.importTextSubmitBtn.addEventListener('click', () => {
+    const raw = els.importTextInput.value.trim();
+    if (!raw) {
+      flashStatus('Paste JSON first', true);
+      return;
+    }
+    try {
+      importFromJsonText(raw);
+      setImportModalOpen(false);
+    } catch (err) {
+      flashStatus(`Import failed: ${String(err.message || err)}`, true);
+    }
+  });
+  els.importModal.addEventListener('click', (e) => {
+    if (e.target === els.importModal) setImportModalOpen(false);
   });
   els.importFileInput.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const text = await file.text();
-      const parsed = JSON.parse(text);
-      appendImportedConversations(parsed);
+      importFromJsonText(text);
     } catch (err) {
       flashStatus(`Import failed: ${String(err.message || err)}`, true);
     }
@@ -1409,9 +2039,20 @@
     els.input.style.height = 'auto';
     els.input.style.height = Math.min(els.input.scrollHeight, 180) + 'px';
   }
-  els.input.addEventListener('input', autoResize);
+  function updateInputPlaceholder() {
+    els.input.placeholder = isSidebarMobile()
+      ? 'Type a message…'
+      : 'Type a message… (Enter to send, Shift+Enter for newline)';
+  }
+  els.input.addEventListener('input', () => {
+    autoResize();
+    renderSlashSuggestions();
+  });
   els.input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+    if (e.key === 'Enter' && !e.shiftKey && !isSidebarMobile()) {
+      e.preventDefault();
+      send();
+    }
   });
   els.sendBtn.addEventListener('click', send);
   els.stopBtn.addEventListener('click', () => {
@@ -1740,8 +2381,23 @@
   // --- Send ---
   async function send() {
     if (isStreaming) return;
-    const text = els.input.value.trim();
+    hideSlashSuggestions();
+    let text = els.input.value.trim();
     if (!text) return;
+    const skillCmd = handleSkillCommandInText(text);
+    if (skillCmd.handled) {
+      if (skillCmd.error) {
+        flashStatus(skillCmd.error, true);
+        return;
+      }
+      if (skillCmd.info) flashStatus(skillCmd.info);
+      text = skillCmd.text;
+      if (!text) {
+        els.input.value = '';
+        autoResize();
+        return;
+      }
+    }
 
     const provider = els.provider.value;
     const model    = els.model.value || PROVIDERS[provider].defaultModel;
@@ -1774,7 +2430,9 @@
     let typingStarted = false;
 
     try {
-      const sysPrompt = els.systemPrompt.value.trim();
+      const sysPrompt = [els.systemPrompt.value.trim(), getActiveSkillSystemPrompt()]
+        .filter(Boolean)
+        .join('\n\n');
       const reqInTokens = addInputTokens(conv.messages.filter(m => m.role !== 'error'), sysPrompt);
       conv.tokenIn += reqInTokens;
       renderConversationTokens();
@@ -1963,6 +2621,7 @@
 
   // --- Boot ---
   init();
+  updateInputPlaceholder();
   setStatus(statusWithModel('Ready'));
 </script>
 
