@@ -591,6 +591,53 @@
     font-family: var(--mono);
     padding: 2px 4px;
   }
+  .active-skills {
+    margin-top: 6px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg-elev);
+    padding: 7px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .active-skills.hidden { display: none; }
+  .active-skills-empty {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    padding: 2px 4px;
+  }
+  .active-skill-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    background: var(--accent-soft);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 4px 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .active-skill-remove {
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 999px;
+    width: 18px;
+    height: 18px;
+    line-height: 14px;
+    padding: 0;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .active-skill-remove:hover {
+    border-color: var(--error);
+    color: var(--error);
+    background: #fff5f4;
+  }
 
   .composer textarea {
     flex: 1;
@@ -913,6 +960,7 @@
       <button class="stop" id="stopBtn" hidden>Stop</button>
     </div>
     <div class="slash-suggest" id="slashSuggest"></div>
+    <div class="active-skills" id="activeSkills"></div>
   </div>
   <div class="status" id="status"></div>
   <div class="token-bar conversation">
@@ -966,7 +1014,7 @@
     <h3 class="modal-title" id="skillModalTitle">Skill Manager</h3>
     <p class="modal-copy">Manage skill sets. Trigger in chat with /skill-foo.</p>
     <div class="field" style="margin-bottom: 10px;">
-      <label for="skillActive">Active Skill Set</label>
+      <label for="skillActive">Available Skill Set</label>
       <select id="skillActive"></select>
       <div class="hint" id="skillHint">Trigger in chat with /skill-foo.</div>
     </div>
@@ -1014,7 +1062,6 @@
   const API_KEY_COOKIE_PREFIX = 'atelier_api_key_';
   const API_KEY_STORE_PREFIX = 'atelier_api_key_fallback_';
   const SKILLS_KEY = 'atelier_skills';
-  const ACTIVE_SKILL_KEY = 'atelier_active_skill';
 
   const DEFAULT_SKILLS = {
     concise: {
@@ -1114,6 +1161,7 @@
     empty:        document.getElementById('empty'),
     input:        document.getElementById('input'),
     slashSuggest: document.getElementById('slashSuggest'),
+    activeSkills: document.getElementById('activeSkills'),
     sendBtn:      document.getElementById('sendBtn'),
     stopBtn:      document.getElementById('stopBtn'),
     status:       document.getElementById('status'),
@@ -1173,6 +1221,7 @@
       updatedAt: now,
       tokenIn: 0,
       tokenOut: 0,
+      activeSkills: [],
       messages: seedMessages.slice(-HISTORY_MAX),
     };
   }
@@ -1186,12 +1235,16 @@
 
   function normalizeConversation(raw) {
     const msgs = sanitizeMessages(raw?.messages);
+    const activeSkills = Array.isArray(raw?.activeSkills)
+      ? [...new Set(raw.activeSkills.map(normalizeSkillName).filter(Boolean))]
+      : [];
     return {
       id: raw?.id || makeConversationId(),
       title: (typeof raw?.title === 'string' && raw.title.trim()) ? raw.title.trim().slice(0, 84) : makeConversationTitle(msgs),
       updatedAt: Number(raw?.updatedAt) || Date.now(),
       tokenIn: Number(raw?.tokenIn || 0),
       tokenOut: Number(raw?.tokenOut || 0),
+      activeSkills,
       messages: msgs
     };
   }
@@ -1260,9 +1313,33 @@
     els.skillModal.classList.toggle('open', open);
     els.skillModal.hidden = !open;
     if (open) {
-      fillSkillEditor(activeSkillName || els.skillName.value || '');
+      fillSkillEditor(els.skillActive.value || els.skillName.value || '');
       setTimeout(() => els.skillName.focus(), 0);
     }
+  }
+
+  function getConversationActiveSkills(conv = activeConversation()) {
+    if (!Array.isArray(conv.activeSkills)) conv.activeSkills = [];
+    conv.activeSkills = [...new Set(conv.activeSkills.map(normalizeSkillName).filter(Boolean))];
+    return conv.activeSkills;
+  }
+
+  function addActiveSkillToConversation(conv, skillName) {
+    const key = normalizeSkillName(skillName);
+    if (!key || !skillSets[key]) return false;
+    const active = getConversationActiveSkills(conv);
+    if (active.includes(key)) return false;
+    active.push(key);
+    return true;
+  }
+
+  function removeActiveSkillFromConversation(conv, skillName) {
+    const key = normalizeSkillName(skillName);
+    const active = getConversationActiveSkills(conv);
+    const next = active.filter(s => s !== key);
+    const changed = next.length !== active.length;
+    conv.activeSkills = next;
+    return changed;
   }
 
   function importFromJsonText(rawText) {
@@ -1363,6 +1440,7 @@
         updatedAt: conv.updatedAt || Date.now(),
         tokenIn: Number(conv.tokenIn || 0),
         tokenOut: Number(conv.tokenOut || 0),
+        activeSkills: Array.isArray(conv.activeSkills) ? conv.activeSkills.map(normalizeSkillName).filter(Boolean) : [],
         messages: cleanMsgs
       };
     });
@@ -1667,7 +1745,6 @@
     return {
       schema: 'atelier.skills.v1',
       exportedAt: new Date().toISOString(),
-      activeSkillName,
       skills: skillSets
     };
   }
@@ -1715,15 +1792,14 @@
     if (keys.length === 0) throw new Error('No valid skills found');
     skillSets = { ...skillSets, ...incoming };
     saveSkillSets();
-    if (parsed?.activeSkillName) setActiveSkill(parsed.activeSkillName);
     renderSkillOptions();
-    fillSkillEditor(activeSkillName || keys[0]);
+    fillSkillEditor(keys[0]);
     flashStatus(`Imported ${keys.length} skill${keys.length > 1 ? 's' : ''}`);
   }
 
   function renderSkillHint() {
-    const active = activeSkillName ? `Active: ${activeSkillName}` : 'Active: none';
-    els.skillHint.textContent = `${active}. Trigger in chat with /skill-foo`;
+    const count = Object.keys(skillSets).length;
+    els.skillHint.textContent = `${count} available. Use /skill-foo to activate in conversation.`;
   }
 
   function renderSkillOptions() {
@@ -1740,16 +1816,9 @@
       els.skillActive.appendChild(opt);
     });
     if (activeSkillName && !skillSets[activeSkillName]) activeSkillName = '';
-    els.skillActive.value = activeSkillName;
+    els.skillActive.value = activeSkillName || '';
     renderSkillHint();
     renderSlashSuggestions();
-  }
-
-  function setActiveSkill(name, persist = true) {
-    const key = normalizeSkillName(name);
-    activeSkillName = skillSets[key] ? key : '';
-    if (persist) store.set(ACTIVE_SKILL_KEY, activeSkillName);
-    renderSkillOptions();
   }
 
   function fillSkillEditor(name = '') {
@@ -1760,32 +1829,40 @@
     els.skillTemplate.value = skill.template;
   }
 
-  function getActiveSkillSystemPrompt() {
-    if (!activeSkillName || !skillSets[activeSkillName]) return '';
-    const skill = skillSets[activeSkillName];
-    const chunks = [
-      `Active skill: ${activeSkillName}`,
-      skill.style ? `Style instruction:\n${skill.style}` : '',
-      skill.template ? `Response template:\n${skill.template}` : '',
-      'Follow active skill style and template for this response.'
-    ].filter(Boolean);
-    return chunks.join('\n\n');
+  function getSkillsSystemPrompt(skillNames = []) {
+    const names = [...new Set((Array.isArray(skillNames) ? skillNames : []).map(normalizeSkillName).filter(Boolean))]
+      .filter(name => skillSets[name]);
+    if (names.length === 0) return '';
+    const chunks = [`Active conversation skills: ${names.join(', ')}`];
+    names.forEach(name => {
+      const skill = skillSets[name];
+      chunks.push(
+        `Skill: ${name}`,
+        skill.style ? `Style instruction:\n${skill.style}` : '',
+        skill.template ? `Response template:\n${skill.template}` : ''
+      );
+    });
+    chunks.push('Apply all active conversation skills together in this response.');
+    return chunks.filter(Boolean).join('\n\n');
   }
 
-  function handleSkillCommandInText(rawText) {
+  function handleSkillCommandInText(rawText, conv) {
     const m = rawText.match(/^\/skill-([a-z0-9_-]+)\b/i);
     if (!m) return { handled: false, text: rawText };
     const wanted = normalizeSkillName(m[1]);
-    if (wanted === 'none' || wanted === 'off') {
-      setActiveSkill('');
-      return { handled: true, text: rawText.replace(/^\/skill-[a-z0-9_-]+\s*/i, '').trim(), info: 'Skill disabled' };
-    }
     if (!skillSets[wanted]) {
       return { handled: true, text: '', error: `Unknown skill: ${wanted}` };
     }
-    setActiveSkill(wanted);
+    addActiveSkillToConversation(conv, wanted);
+    touchConversation(conv);
     fillSkillEditor(wanted);
-    return { handled: true, text: rawText.replace(/^\/skill-[a-z0-9_-]+\s*/i, '').trim(), info: `Active skill: ${wanted}` };
+    renderActiveSkillChips();
+    saveHistory();
+    return {
+      handled: true,
+      text: rawText.replace(/^\/skill-[a-z0-9_-]+\s*/i, '').trim(),
+      info: `Activated skill: ${wanted}`
+    };
   }
 
   function renderSlashSuggestions() {
@@ -1796,7 +1873,7 @@
       return;
     }
     const q = raw.toLowerCase().slice(slashIndex + 1).trim();
-    const commands = [...Object.keys(skillSets).sort().map(name => `/skill-${name}`), '/skill-off'];
+    const commands = Object.keys(skillSets).sort().map(name => `/skill-${name}`);
     const filtered = commands.filter(cmd => cmd.slice(1).startsWith(q)).slice(0, 8);
     els.slashSuggest.innerHTML = '';
     if (filtered.length === 0) {
@@ -1822,6 +1899,47 @@
     els.slashSuggest.innerHTML = '';
   }
 
+  function consumeLeadingSkillCommandFromInput() {
+    const raw = els.input.value || '';
+    const m = raw.match(/^\/skill-([a-z0-9_-]+)(\s+|$)/i);
+    if (!m) return false;
+    const wanted = normalizeSkillName(m[1]);
+    const conv = activeConversation();
+    if (!skillSets[wanted]) return false;
+    if (addActiveSkillToConversation(conv, wanted)) {
+      touchConversation(conv);
+      saveHistory();
+      renderActiveSkillChips();
+      flashStatus(`Activated skill: ${wanted}`);
+    }
+    fillSkillEditor(wanted);
+    els.input.value = raw.replace(/^\/skill-[a-z0-9_-]+(\s+|$)/i, '');
+    hideSlashSuggestions();
+    autoResize();
+    return true;
+  }
+
+  function renderActiveSkillChips() {
+    const conv = activeConversation();
+    const active = getConversationActiveSkills(conv).filter(name => skillSets[name]);
+    conv.activeSkills = active;
+    els.activeSkills.innerHTML = '';
+    if (active.length === 0) {
+      els.activeSkills.classList.add('hidden');
+      return;
+    }
+    els.activeSkills.classList.remove('hidden');
+    active.forEach(name => {
+      const chip = document.createElement('span');
+      chip.className = 'active-skill-chip';
+      chip.innerHTML = `
+        <span>${escapeHtml(name)}</span>
+        <button class="active-skill-remove" data-skill-name="${name}" title="Remove skill">×</button>
+      `;
+      els.activeSkills.appendChild(chip);
+    });
+  }
+
   function initSkillSets() {
     const rawSkills = store.get(SKILLS_KEY);
     let parsed = {};
@@ -1831,10 +1949,10 @@
       ? normalizeSkillSetMap(DEFAULT_SKILLS)
       : normalizeSkillSetMap(parsed);
     saveSkillSets();
-    const savedActive = normalizeSkillName(store.get(ACTIVE_SKILL_KEY) || '');
-    activeSkillName = skillSets[savedActive] ? savedActive : '';
+    activeSkillName = '';
     renderSkillOptions();
-    fillSkillEditor(activeSkillName || Object.keys(skillSets).sort()[0] || '');
+    fillSkillEditor(Object.keys(skillSets).sort()[0] || '');
+    renderActiveSkillChips();
   }
 
   function applyTheme(theme) {
@@ -1907,14 +2025,27 @@
     const slashIndex = raw.lastIndexOf('/');
     const prefix = slashIndex >= 0 ? raw.slice(0, slashIndex) : '';
     els.input.value = `${prefix}${cmd} `;
-    hideSlashSuggestions();
+    consumeLeadingSkillCommandFromInput();
+    renderSlashSuggestions();
     autoResize();
     els.input.focus();
   });
+  els.activeSkills.addEventListener('click', (e) => {
+    const btn = e.target.closest('.active-skill-remove');
+    if (!btn) return;
+    const name = btn.dataset.skillName || '';
+    const conv = activeConversation();
+    if (removeActiveSkillFromConversation(conv, name)) {
+      touchConversation(conv);
+      saveHistory();
+      renderActiveSkillChips();
+      flashStatus(`Removed skill: ${name}`);
+    }
+  });
   els.skillActive.addEventListener('change', () => {
-    setActiveSkill(els.skillActive.value);
-    fillSkillEditor(activeSkillName);
-    flashStatus(activeSkillName ? `Skill active: ${activeSkillName}` : 'Skill disabled');
+    const selected = normalizeSkillName(els.skillActive.value);
+    activeSkillName = selected;
+    fillSkillEditor(selected);
   });
   els.skillSaveBtn.addEventListener('click', () => {
     const key = normalizeSkillName(els.skillName.value);
@@ -1930,7 +2061,8 @@
     }
     skillSets[key] = { style, template };
     saveSkillSets();
-    setActiveSkill(key);
+    activeSkillName = key;
+    renderSkillOptions();
     fillSkillEditor(key);
     flashStatus(`Skill saved: ${key}`);
   });
@@ -1942,8 +2074,14 @@
     }
     delete skillSets[key];
     saveSkillSets();
-    if (activeSkillName === key) setActiveSkill('');
+    conversations.forEach(c => {
+      if (!Array.isArray(c.activeSkills)) return;
+      c.activeSkills = c.activeSkills.filter(s => s !== key);
+    });
+    if (activeSkillName === key) activeSkillName = '';
     renderSkillOptions();
+    renderActiveSkillChips();
+    saveHistory();
     fillSkillEditor('');
     flashStatus(`Skill deleted: ${key}`);
   });
@@ -2068,6 +2206,7 @@
   }
   els.input.addEventListener('input', () => {
     autoResize();
+    consumeLeadingSkillCommandFromInput();
     renderSlashSuggestions();
   });
   els.input.addEventListener('keydown', (e) => {
@@ -2219,6 +2358,7 @@
       els.messages.appendChild(els.empty);
       renderConversationTokens();
       renderHistorySidebar();
+      renderActiveSkillChips();
       return;
     }
     els.empty.style.display = 'none';
@@ -2238,6 +2378,7 @@
     });
     renderConversationTokens();
     renderHistorySidebar();
+    renderActiveSkillChips();
   }
 
   // ── State machine: idle → thinking → typing → done ──────────────
@@ -2406,7 +2547,8 @@
     hideSlashSuggestions();
     let text = els.input.value.trim();
     if (!text) return;
-    const skillCmd = handleSkillCommandInText(text);
+    const conv = activeConversation();
+    const skillCmd = handleSkillCommandInText(text, conv);
     if (skillCmd.handled) {
       if (skillCmd.error) {
         flashStatus(skillCmd.error, true);
@@ -2430,7 +2572,6 @@
       return;
     }
 
-    const conv = activeConversation();
     conv.messages.push({ role: 'user', content: text });
     touchConversation(conv);
     lastUsedModel = model;
@@ -2452,7 +2593,7 @@
     let typingStarted = false;
 
     try {
-      const sysPrompt = [els.systemPrompt.value.trim(), getActiveSkillSystemPrompt()]
+      const sysPrompt = [els.systemPrompt.value.trim(), getSkillsSystemPrompt(getConversationActiveSkills(conv))]
         .filter(Boolean)
         .join('\n\n');
       const reqInTokens = addInputTokens(conv.messages.filter(m => m.role !== 'error'), sysPrompt);
