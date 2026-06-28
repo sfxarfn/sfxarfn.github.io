@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaxPro Test - Laporan Mutasi Kas</title>
+  <style>
+    :root {
+      --bg: #f3f5fb;
+      --panel: #ffffff;
+      --panel-soft: #f7f8fc;
+      --line: #d8deeb;
+      --line-strong: #c5cfdf;
+      --text: #1d2b45;
+      --muted: #667085;
+      --primary: #1f3a68;
+      --primary-soft: #e8eef9;
+      --danger: #ff4d4f;
+      --shadow: 0 14px 40px rgba(21, 38, 74, 0.08);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #eef2fb 0%, #f7f8fc 100%);
+      color: var(--text);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 26px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .header-actions,
+    .form-actions,
+    .toolbar-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid var(--line-strong);
+      background: #fff;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 11px 18px;
+      min-height: 44px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.18s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--primary);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .btn-soft {
+      background: var(--panel-soft);
+    }
+
+    .panel {
+      margin-top: 18px;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .panel[hidden] {
+      display: none;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px 20px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field-full {
+      grid-column: 1 / -1;
+    }
+
+    .label {
+      font-size: 14px;
+      font-weight: 700;
+      color: #4c5872;
+    }
+
+    .control,
+    .textarea,
+    .money-input {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      padding: 11px 14px;
+      outline: none;
+    }
+
+    .control:focus,
+    .textarea:focus,
+    .money-input:focus,
+    .date-range input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(31, 58, 104, 0.08);
+    }
+
+    .textarea {
+      min-height: 84px;
+      resize: vertical;
+    }
+
+    .money-wrap {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .money-prefix {
+      padding: 0 14px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .money-input {
+      border: 0;
+      text-align: right;
+      border-left: 1px solid var(--line);
+      border-radius: 0;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .summary {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .summary-title {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .summary .money-wrap {
+      width: min(210px, 100%);
+    }
+
+    .date-range {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .date-range input {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    .meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .overview-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+
+    .overview-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .overview-value {
+      margin-top: 6px;
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1.1;
+    }
+
+    .overview-sub {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-top: 1px solid var(--line);
+      margin-top: 12px;
+      padding-top: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 14px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      color: #5d6982;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    td {
+      font-size: 15px;
+    }
+
+    .amount-cell {
+      text-align: right;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .balance-cell,
+    .balance-negative {
+      text-align: right;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .balance-negative {
+      color: var(--danger);
+    }
+
+    thead th {
+      text-align: center;
+      background: #f8faff;
+    }
+
+    .journal-select {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 10px;
+      outline: none;
+    }
+
+    .journal-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(31, 58, 104, 0.08);
+    }
+
+    .select-with-warning {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .select-with-warning.is-empty select {
+      border-color: var(--danger);
+    }
+
+    .warning-indicator {
+      min-width: 18px;
+      color: var(--danger);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+      visibility: hidden;
+    }
+
+    .select-with-warning.is-empty .warning-indicator {
+      visibility: visible;
+    }
+
+    .empty-cell {
+      color: transparent;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 28px 16px;
+      color: var(--muted);
+      background: #fff;
+      border: 1px dashed var(--line-strong);
+      border-radius: 14px;
+      margin-top: 14px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      padding: 0 14px;
+      background: #fff;
+      font-weight: 600;
+      color: #5d6982;
+    }
+
+    .note-cell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .link-btn {
+      border: 0;
+      background: transparent;
+      color: var(--danger);
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .tfoot-label {
+      text-align: right;
+      font-weight: 700;
+      color: var(--primary);
+      padding-right: 16px;
+    }
+
+    .status {
+      margin-top: 14px;
+      min-height: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    @media (max-width: 860px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <div class="header">
+        <h1 class="title">Dokumen 1: Jurnal Kas</h1>
+        <div class="header-actions">
+          <button class="btn" id="importClipboardBtn" type="button">Import dari Clipboard</button>
+          <button class="btn btn-primary" id="focusFormBtn" type="button">+ Tambah Item</button>
+        </div>
+      </div>
+
+      <div class="panel" id="formPanel" hidden>
+        <form id="mutationForm">
+          <div class="grid">
+            <div class="field">
+              <label class="label" for="date">Tanggal*</label>
+              <input class="control" id="date" name="date" type="date" required />
+            </div>
+
+            <div class="field">
+              <label class="label" for="account">Akun*</label>
+              <div class="select-with-warning" id="formAccountWrap">
+                <select class="control" id="account" name="account" required></select>
+                <span class="warning-indicator" aria-hidden="true" title="Akun belum diisi">!</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="type">Jenis Mutasi</label>
+              <select class="control" id="type" name="type">
+                <option value="Debet">Debet</option>
+                <option value="Kredit">Kredit</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="label" for="amount">Nilai Mutasi</label>
+              <div class="money-wrap">
+                <div class="money-prefix">Rp</div>
+                <input class="money-input" id="amount" name="amount" type="text" inputmode="numeric" placeholder="0" required />
+              </div>
+            </div>
+
+            <div class="field field-full">
+              <label class="label" for="description">Keterangan</label>
+              <textarea class="textarea" id="description" name="description" placeholder="Berikan keterangan di sini..."></textarea>
+            </div>
+          </div>
+
+          <div class="form-actions" style="justify-content:flex-end; margin-top: 12px;">
+            <button class="btn btn-soft" id="resetFormBtn" type="button">Batal</button>
+            <button class="btn btn-primary" type="submit">Tambahkan</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <div class="date-range">
+              <span class="chip">Pilih Rentang Tanggal</span>
+              <input id="filterStart" type="date" />
+              <input id="filterEnd" type="date" />
+              <button class="btn btn-soft" id="last30Btn" type="button">30 Hari Terakhir</button>
+              <button class="btn btn-soft" id="clearFilterBtn" type="button">Reset Filter</button>
+            </div>
+          </div>
+
+          <div class="summary">
+            <span class="summary-title">Saldo Awal (Dalam Rupiah)</span>
+            <div class="money-wrap">
+              <div class="money-prefix">Rp</div>
+              <input class="money-input" id="openingBalance" type="text" inputmode="numeric" placeholder="0" />
+            </div>
+          </div>
+
+
+        <div class="meta" id="tableMeta">0 item</div>
+        <div class="overview-grid">
+          <div class="overview-card">
+            <div class="overview-label">Incomplete Ratio</div>
+            <div class="overview-value" id="incompleteRatio">0%</div>
+            <div class="overview-sub" id="incompleteCount">0/0 data incomplete</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Keterangan</th>
+                <th>Akun Debet</th>
+                <th>Akun Kredit</th>
+                <th class="amount-cell">Nilai</th>
+                <th class="amount-cell">Saldo</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+            <tfoot>
+              <tr>
+                <td class="tfoot-label" colspan="4">Total</td>
+                <td class="amount-cell" id="totalAmount">Rp 0</td>
+                <td class="balance-cell" id="closingBalance">Rp 0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="empty" id="emptyState">Belum ada data. Tambah item atau import dari clipboard.</div>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEYS = {
+      items: "taxpro_mutasi_items",
+      openingBalance: "taxpro_mutasi_opening_balance",
+      filterStart: "taxpro_mutasi_filter_start",
+      filterEnd: "taxpro_mutasi_filter_end"
+    };
+
+    const ACCOUNT_OPTIONS = [
+      "BOP - Kebutuhan Produksi",
+      "Pengangkutan",
+      "Kas Operasional",
+      "Marketing",
+      "Administrasi"
+    ];
+
+    const els = {
+      formPanel: document.getElementById("formPanel"),
+      form: document.getElementById("mutationForm"),
+      date: document.getElementById("date"),
+      formAccountWrap: document.getElementById("formAccountWrap"),
+      account: document.getElementById("account"),
+      type: document.getElementById("type"),
+      amount: document.getElementById("amount"),
+      description: document.getElementById("description"),
+      resetFormBtn: document.getElementById("resetFormBtn"),
+      focusFormBtn: document.getElementById("focusFormBtn"),
+      importClipboardBtn: document.getElementById("importClipboardBtn"),
+      last30Btn: document.getElementById("last30Btn"),
+      clearFilterBtn: document.getElementById("clearFilterBtn"),
+      filterStart: document.getElementById("filterStart"),
+      filterEnd: document.getElementById("filterEnd"),
+      openingBalance: document.getElementById("openingBalance"),
+      tableBody: document.getElementById("tableBody"),
+      tableMeta: document.getElementById("tableMeta"),
+      incompleteRatio: document.getElementById("incompleteRatio"),
+      incompleteCount: document.getElementById("incompleteCount"),
+      totalAmount: document.getElementById("totalAmount"),
+      closingBalance: document.getElementById("closingBalance"),
+      emptyState: document.getElementById("emptyState"),
+      status: document.getElementById("status")
+    };
+
+    let items = loadItems();
+
+    function loadItems() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.items);
+        const parsed = JSON.parse(raw || "[]");
+        return Array.isArray(parsed) ? parsed.map(normalizeItem) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveItems() {
+      localStorage.setItem(STORAGE_KEYS.items, JSON.stringify(items));
+    }
+
+    function itemSignature(item) {
+      const normalized = normalizeItem(item);
+      return [
+        normalized.date,
+        normalized.account.trim().toLowerCase(),
+        normalized.type,
+        String(Number(normalized.amount || 0)),
+        normalized.description.trim().toLowerCase()
+      ].join("|");
+    }
+
+    function normalizeItem(item) {
+      const base = {
+        id: String(item.id || crypto.randomUUID()),
+        date: String(item.date || ""),
+        account: String(item.account || ""),
+        type: item.type === "Kredit" ? "Kredit" : "Debet",
+        amount: Number(item.amount || 0),
+        description: String(item.description || "").trim(),
+        createdAt: Number(item.createdAt || Date.now())
+      };
+      return {
+        ...base,
+        debitAccount: String(item.debitAccount || (base.type === "Kredit" ? base.account : "")).trim(),
+        creditAccount: String(item.creditAccount || (base.type === "Debet" ? base.account : "")).trim()
+      };
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("id-ID").format(Math.abs(Number(value) || 0));
+    }
+
+    function formatCurrency(value) {
+      const numeric = Number(value) || 0;
+      const sign = numeric < 0 ? "(" + formatNumber(numeric) + ")" : formatNumber(numeric);
+      return "Rp " + sign;
+    }
+
+    function formatDate(dateText) {
+      if (!dateText) return "-";
+      const date = new Date(dateText + "T00:00:00");
+      return new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+      }).format(date);
+    }
+
+    function parseCurrencyInput(text) {
+      return Number(String(text || "").replace(/\D/g, "")) || 0;
+    }
+
+    function setMoneyInputValue(input, value) {
+      const amount = Number(value) || 0;
+      input.value = amount ? formatNumber(amount) : "";
+    }
+
+    function setStatus(message, isError) {
+      els.status.textContent = message || "";
+      els.status.classList.toggle("error", Boolean(isError));
+    }
+
+    function getOpeningBalance() {
+      return Number(localStorage.getItem(STORAGE_KEYS.openingBalance) || 0);
+    }
+
+    function sortItems(list) {
+      return [...list].sort((a, b) => {
+        const timeA = new Date(`${a.date || "1970-01-01"}T00:00:00`).getTime();
+        const timeB = new Date(`${b.date || "1970-01-01"}T00:00:00`).getTime();
+        if (timeA !== timeB) return timeA - timeB;
+        if (a.date === b.date) return a.createdAt - b.createdAt;
+        return 0;
+      });
+    }
+
+    function getFilters() {
+      return {
+        start: els.filterStart.value,
+        end: els.filterEnd.value
+      };
+    }
+
+    function getFilteredItems() {
+      const sorted = sortItems(items);
+      const { start, end } = getFilters();
+
+      return sorted.filter((item) => {
+        if (start && item.date < start) return false;
+        if (end && item.date > end) return false;
+        return true;
+      });
+    }
+
+    function getAccountOptions() {
+      return [...new Set([
+        "",
+        ...ACCOUNT_OPTIONS,
+        ...items.flatMap((item) => [item.account, item.debitAccount, item.creditAccount]).filter(Boolean)
+      ])];
+    }
+
+    function renderOptions(options, selectedValue, placeholder) {
+      return options.map((option) => {
+        const label = option || placeholder;
+        const selected = option === selectedValue ? " selected" : "";
+        return `<option value="${escapeHtml(option)}"${selected}>${escapeHtml(label)}</option>`;
+      }).join("");
+    }
+
+    function renderFormAccountOptions(selectedValue) {
+      els.account.innerHTML = renderOptions(getAccountOptions(), selectedValue || "", "Pilih akun");
+      syncSelectWarningState(els.account);
+    }
+
+    function syncSelectWarningState(select) {
+      const wrap = select?.closest(".select-with-warning");
+      if (!wrap) return;
+      wrap.classList.toggle("is-empty", !String(select.value || "").trim());
+    }
+
+    function renderJournalAccountSelect(itemId, side, value) {
+      const isEmpty = !String(value || "").trim();
+      return `
+        <div class="select-with-warning${isEmpty ? " is-empty" : ""}">
+          <select class="journal-select" data-role="journal-account" data-id="${itemId}" data-side="${side}">
+            ${renderOptions(getAccountOptions(), value || "", "Pilih akun")}
+          </select>
+          <span class="warning-indicator" aria-hidden="true" title="Akun belum diisi">!</span>
+        </div>
+      `;
+    }
+
+    function renderOverviewStats(filtered) {
+      const total = filtered.length;
+      const incomplete = filtered.filter((item) => {
+        const debitMissing = !String(item.debitAccount || "").trim();
+        const creditMissing = !String(item.creditAccount || "").trim();
+        return debitMissing || creditMissing;
+      }).length;
+      const ratio = total ? Math.round((incomplete / total) * 100) : 0;
+      els.incompleteRatio.textContent = `${ratio}%`;
+      els.incompleteCount.textContent = `${incomplete}/${total} data incomplete`;
+    }
+
+    function buildRows() {
+      const filtered = getFilteredItems();
+      let totalAmount = 0;
+      let runningBalance = getOpeningBalance();
+      renderOverviewStats(filtered);
+
+      if (filtered.length === 0) {
+        els.tableBody.innerHTML = "";
+        els.emptyState.hidden = false;
+        els.tableMeta.textContent = "0 item";
+        els.totalAmount.textContent = formatCurrency(0);
+        els.closingBalance.textContent = formatCurrency(0);
+        els.closingBalance.classList.remove("balance-negative");
+        return;
+      }
+
+      els.emptyState.hidden = true;
+      els.tableMeta.textContent = filtered.length + " item";
+
+      const rows = filtered.map((item) => {
+        const debitAccount = item.debitAccount || "";
+        const creditAccount = item.creditAccount || "";
+        totalAmount += item.amount;
+        runningBalance += item.type === "Debet" ? item.amount : -item.amount;
+
+        return `
+          <tr>
+            <td>${formatDate(item.date)}</td>
+            <td>
+              <div class="note-cell">
+                <span>${escapeHtml(item.description || "-")}</span>
+                <button class="link-btn" data-id="${item.id}" type="button">Hapus</button>
+              </div>
+            </td>
+            <td>${renderJournalAccountSelect(item.id, "debit", debitAccount)}</td>
+            <td>${renderJournalAccountSelect(item.id, "credit", creditAccount)}</td>
+            <td class="amount-cell">${formatCurrency(item.amount)}</td>
+            <td class="balance-cell ${runningBalance < 0 ? "balance-negative" : ""}">${formatCurrency(runningBalance)}</td>
+          </tr>
+        `;
+      }).join("");
+
+      els.tableBody.innerHTML = rows;
+      els.totalAmount.textContent = formatCurrency(totalAmount);
+      els.closingBalance.textContent = formatCurrency(runningBalance);
+      els.closingBalance.classList.toggle("balance-negative", runningBalance < 0);
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function saveFilters() {
+      localStorage.setItem(STORAGE_KEYS.filterStart, els.filterStart.value);
+      localStorage.setItem(STORAGE_KEYS.filterEnd, els.filterEnd.value);
+    }
+
+    function loadFilters() {
+      els.filterStart.value = localStorage.getItem(STORAGE_KEYS.filterStart) || "";
+      els.filterEnd.value = localStorage.getItem(STORAGE_KEYS.filterEnd) || "";
+    }
+
+    function resetForm() {
+      els.form.reset();
+      els.type.value = "Debet";
+      els.date.value = todayLocal();
+      setMoneyInputValue(els.amount, 0);
+      els.description.value = "";
+      setStatus("");
+    }
+
+    function setFormVisible(visible) {
+      els.formPanel.hidden = !visible;
+      els.focusFormBtn.textContent = visible ? "Tutup Form" : "+ Tambah Item";
+      els.focusFormBtn.setAttribute("aria-expanded", visible ? "true" : "false");
+    }
+
+    function todayLocal() {
+      const date = new Date();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return date.getFullYear() + "-" + month + "-" + day;
+    }
+
+    function addItem(payload) {
+      items.push(normalizeItem(payload));
+      saveItems();
+      renderFormAccountOptions(els.account.value);
+      buildRows();
+    }
+
+    function removeItem(id) {
+      items = items.filter((item) => item.id !== id);
+      saveItems();
+      buildRows();
+    }
+
+    function parseClipboardColumnDate(rawDate) {
+      const text = String(rawDate || "").trim();
+      if (!text) return "";
+      if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+      const normalized = text
+        .replace(/\s+/g, "-")
+        .replace(/\//g, "-")
+        .replace(/,+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      const parts = normalized.split("-");
+      if (parts.length < 2) return "";
+
+      const monthMap = {
+        jan: 1,
+        january: 1,
+        feb: 2,
+        february: 2,
+        mar: 3,
+        march: 3,
+        apr: 4,
+        april: 4,
+        may: 5,
+        mei: 5,
+        jun: 6,
+        june: 6,
+        jul: 7,
+        july: 7,
+        aug: 8,
+        august: 8,
+        agu: 8,
+        ags: 8,
+        sep: 9,
+        sept: 9,
+        september: 9,
+        oct: 10,
+        october: 10,
+        okt: 10,
+        oktober: 10,
+        nov: 11,
+        november: 11,
+        dec: 12,
+        december: 12,
+        des: 12,
+        desember: 12
+      };
+
+      const day = Number(parts[0]);
+      const month = monthMap[String(parts[1] || "").toLowerCase()];
+      let year = Number(parts[2]);
+
+      if (!day || !month) return "";
+      if (!year) year = new Date().getFullYear();
+      if (year < 100) year += 2000;
+
+      return [
+        String(year).padStart(4, "0"),
+        String(month).padStart(2, "0"),
+        String(day).padStart(2, "0")
+      ].join("-");
+    }
+
+    function cleanClipboardLine(line) {
+      return String(line || "")
+        .replace(/^[\s"'`]+/, "")
+        .replace(/[\s"'`]+$/, "")
+        .trim();
+    }
+
+    function looksLikeColumnClipboard(lines) {
+      if (lines.length < 10) return false;
+      const head = lines.slice(0, 5).map((line) => line.toLowerCase());
+      return JSON.stringify(head) === JSON.stringify([
+        "tanggal",
+        "keterangan",
+        "akun",
+        "debit",
+        "kredit"
+      ]);
+    }
+
+    function splitClipboardRow(line) {
+      return String(line || "")
+        .split(/\t|;/)
+        .map((part) => cleanClipboardLine(part));
+    }
+
+    function normalizeHeaderToken(text) {
+      return String(text || "").toLowerCase().replace(/\s+/g, "");
+    }
+
+    function looksLikeTabbedClipboard(lines) {
+      if (lines.length < 2) return false;
+      const head = splitClipboardRow(lines[0]).map(normalizeHeaderToken);
+      return head.length >= 5 && JSON.stringify(head.slice(0, 5)) === JSON.stringify([
+        "tanggal",
+        "keterangan",
+        "akun",
+        "debit",
+        "kredit"
+      ]);
+    }
+
+    function parseTabbedClipboard(lines) {
+      const imported = [];
+
+      for (let index = 1; index < lines.length; index += 1) {
+        const cols = splitClipboardRow(lines[index]);
+        if (cols.every((col) => !col)) continue;
+
+        const [date, description, account, debit, kredit] = cols;
+        const debitValue = parseCurrencyInput(debit);
+        const kreditValue = parseCurrencyInput(kredit);
+
+        if (debitValue && kreditValue) {
+          throw new Error("Import gagal. Debit dan kredit terisi bersamaan");
+        }
+
+        imported.push(normalizeImportItem({
+          date,
+          description,
+          account,
+          type: kreditValue ? "Kredit" : "Debet",
+          amount: debitValue || kreditValue
+        }));
+      }
+
+      return imported;
+    }
+
+    function parseColumnClipboard(lines) {
+      const rows = lines.slice(5);
+      const imported = [];
+
+      for (let index = 0; index < rows.length;) {
+        const date = rows[index];
+        if (!parseClipboardColumnDate(date)) {
+          throw new Error("Import gagal. Format tanggal clipboard tidak dikenali");
+        }
+
+        const description = rows[index + 1] || "";
+        const account = rows[index + 2] || "";
+        index += 3;
+
+        const amountLines = [];
+        while (index < rows.length && !parseClipboardColumnDate(rows[index])) {
+          amountLines.push(rows[index]);
+          index += 1;
+        }
+
+        if (!description || !account || amountLines.length === 0 || amountLines.length > 2) {
+          throw new Error("Import gagal. Struktur record clipboard tidak valid");
+        }
+
+        let debit = "";
+        let kredit = "";
+        if (amountLines.length === 1) {
+          debit = amountLines[0];
+        } else {
+          [debit, kredit] = amountLines;
+        }
+
+        const debitValue = parseCurrencyInput(debit);
+        const kreditValue = parseCurrencyInput(kredit);
+        if (debitValue && kreditValue) {
+          throw new Error("Import gagal. Debit dan kredit terisi bersamaan");
+        }
+
+        imported.push(normalizeImportItem({
+          date,
+          account,
+          type: kreditValue ? "Kredit" : "Debet",
+          amount: debitValue || kreditValue,
+          description
+        }));
+      }
+
+      return imported;
+    }
+
+    function parseClipboardPayload(rawText) {
+      const text = String(rawText || "").trim();
+      if (!text) throw new Error("Clipboard kosong");
+
+      if (text.startsWith("[") || text.startsWith("{")) {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) return parsed.map(normalizeImportItem);
+        if (Array.isArray(parsed.items)) return parsed.items.map(normalizeImportItem);
+        throw new Error("Format JSON tidak valid");
+      }
+
+      const rawLines = text.split(/\r?\n/).map(cleanClipboardLine);
+      const lines = rawLines.filter(Boolean);
+      if (lines.length === 0) throw new Error("Clipboard kosong");
+
+      if (looksLikeTabbedClipboard(lines)) {
+        return parseTabbedClipboard(lines);
+      }
+
+      if (looksLikeColumnClipboard(lines)) {
+        return parseColumnClipboard(lines);
+      }
+
+      return lines.map((line) => {
+        const parts = splitClipboardRow(line);
+        const [date, account, type, amount, description] = parts;
+        return normalizeImportItem({ date, account, type, amount, description });
+      });
+    }
+
+    function normalizeImportItem(item) {
+      const normalizedType = String(item.type || "").toLowerCase();
+      const normalized = normalizeItem({
+        id: crypto.randomUUID(),
+        date: /^\d{4}-\d{2}-\d{2}$/.test(String(item.date || ""))
+          ? String(item.date)
+          : parseClipboardColumnDate(item.date),
+        account: item.account,
+        type: normalizedType === "kredit" ? "Kredit" : "Debet",
+        amount: parseCurrencyInput(item.amount),
+        description: item.description,
+        createdAt: Date.now() + Math.floor(Math.random() * 1000)
+      });
+
+      if (!normalized.date || !normalized.account || !normalized.amount) {
+        throw new Error("Import gagal. Format wajib: tanggal, akun, debit/kredit, nilai, keterangan");
+      }
+
+      return normalized;
+    }
+
+    async function importFromClipboard() {
+      if (!navigator.clipboard || !navigator.clipboard.readText) {
+        throw new Error("Clipboard API tidak tersedia");
+      }
+
+      const text = await navigator.clipboard.readText();
+      const imported = parseClipboardPayload(text);
+      const existingSignatures = new Set(items.map(itemSignature));
+      const accepted = [];
+      let duplicateCount = 0;
+
+      imported.forEach((item) => {
+        const signature = itemSignature(item);
+        if (existingSignatures.has(signature)) {
+          duplicateCount += 1;
+          return;
+        }
+        existingSignatures.add(signature);
+        accepted.push(item);
+      });
+
+      if (accepted.length === 0) {
+        throw new Error(`Semua data import duplikat (${duplicateCount} item)`);
+      }
+
+      items = items.concat(accepted);
+      saveItems();
+      renderFormAccountOptions(els.account.value);
+      buildRows();
+      setStatus(
+        duplicateCount
+          ? `${accepted.length} item diimport, ${duplicateCount} duplikat dilewati`
+          : `${accepted.length} item berhasil diimport`
+      );
+    }
+
+    function applyLast30Days() {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 29);
+
+      els.filterStart.value = toDateInputValue(start);
+      els.filterEnd.value = toDateInputValue(end);
+      saveFilters();
+      buildRows();
+    }
+
+    function toDateInputValue(date) {
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return date.getFullYear() + "-" + month + "-" + day;
+    }
+
+    function initOpeningBalance() {
+      setMoneyInputValue(els.openingBalance, getOpeningBalance());
+      els.openingBalance.addEventListener("input", () => {
+        const value = parseCurrencyInput(els.openingBalance.value);
+        setMoneyInputValue(els.openingBalance, value);
+        localStorage.setItem(STORAGE_KEYS.openingBalance, String(value));
+        buildRows();
+      });
+    }
+
+    els.amount.addEventListener("input", () => {
+      const value = parseCurrencyInput(els.amount.value);
+      setMoneyInputValue(els.amount, value);
+    });
+
+    els.form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const amount = parseCurrencyInput(els.amount.value);
+      const payload = {
+        id: crypto.randomUUID(),
+        date: els.date.value,
+        account: els.account.value,
+        type: els.type.value,
+        amount,
+        description: els.description.value.trim(),
+        createdAt: Date.now()
+      };
+
+      if (!payload.date || !payload.account || !amount) {
+        setStatus("Tanggal, akun, nilai mutasi wajib isi", true);
+        return;
+      }
+
+      addItem(payload);
+      resetForm();
+      setFormVisible(false);
+      setStatus("Item berhasil ditambahkan");
+    });
+
+    els.tableBody.addEventListener("click", (event) => {
+      const button = event.target.closest(".link-btn");
+      if (!button) return;
+
+      const id = button.getAttribute("data-id");
+      if (!id) return;
+
+      removeItem(id);
+      setStatus("Item berhasil dihapus");
+    });
+
+    els.tableBody.addEventListener("change", (event) => {
+      const select = event.target.closest('[data-role="journal-account"]');
+      if (!select) return;
+
+      const id = select.getAttribute("data-id");
+      const side = select.getAttribute("data-side");
+      const item = items.find((row) => row.id === id);
+      if (!item || !side) return;
+
+      if (side === "debit") item.debitAccount = select.value;
+      if (side === "credit") item.creditAccount = select.value;
+      syncSelectWarningState(select);
+      saveItems();
+      renderFormAccountOptions(els.account.value);
+      buildRows();
+      setStatus("Akun jurnal berhasil diubah");
+    });
+
+    els.account.addEventListener("change", () => {
+      syncSelectWarningState(els.account);
+    });
+
+    els.resetFormBtn.addEventListener("click", () => {
+      resetForm();
+      setFormVisible(false);
+    });
+
+    els.focusFormBtn.addEventListener("click", () => {
+      const nextVisible = els.formPanel.hidden;
+      setFormVisible(nextVisible);
+      if (nextVisible) {
+        els.date.scrollIntoView({ behavior: "smooth", block: "center" });
+        els.date.focus();
+      }
+    });
+
+    els.importClipboardBtn.addEventListener("click", async () => {
+      try {
+        await importFromClipboard();
+      } catch (error) {
+        setStatus(error.message || String(error), true);
+      }
+    });
+
+    els.last30Btn.addEventListener("click", applyLast30Days);
+
+    els.clearFilterBtn.addEventListener("click", () => {
+      els.filterStart.value = "";
+      els.filterEnd.value = "";
+      saveFilters();
+      buildRows();
+    });
+
+    [els.filterStart, els.filterEnd].forEach((input) => {
+      input.addEventListener("change", () => {
+        saveFilters();
+        buildRows();
+      });
+    });
+
+    function seedExampleData() {
+      if (items.length > 0) return;
+
+      items = [
+        {
+          id: crypto.randomUUID(),
+          date: "2026-06-26",
+          account: "BOP - Kebutuhan Produksi",
+          type: "Kredit",
+          amount: 42000,
+          description: "MT BOR NACHI",
+          createdAt: Date.now()
+        },
+        {
+          id: crypto.randomUUID(),
+          date: "2026-06-26",
+          account: "Pengangkutan",
+          type: "Kredit",
+          amount: 100000,
+          description: "SOLAR",
+          createdAt: Date.now() + 1
+        }
+      ];
+
+      localStorage.setItem(STORAGE_KEYS.openingBalance, "4157");
+      saveItems();
+    }
+
+    function init() {
+      seedExampleData();
+      loadFilters();
+      initOpeningBalance();
+      renderFormAccountOptions("");
+      resetForm();
+      setFormVisible(false);
+      buildRows();
+    }
+
+    init();
+  </script>
+</body>
+</html>
