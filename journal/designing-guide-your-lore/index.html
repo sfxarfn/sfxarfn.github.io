@@ -35,6 +35,24 @@
 <li>An opening premise</li>
 </ul>
 <p>Everything after that belongs to the story.</p>
+<h2 id="generation-needed-memory-not-just-more-prose">Generation needed memory, not just more prose</h2>
+<p>Generating a plausible next paragraph is not the difficult part. The difficult part is making scene twelve agree with scene two.</p>
+<p>Each generation request therefore carries a structured story context rather than a loose transcript. That context includes:</p>
+<ul>
+<li>The reader’s previous choices and concise scene summaries</li>
+<li>Completed chapter recaps</li>
+<li>Named characters, their traits, relationships, and psychological arcs</li>
+<li>A world clock and a timeline of significant events</li>
+<li>The current chapter structure and narrative beat</li>
+<li>The final moment of the previous chapter</li>
+</ul>
+<p>The model also returns more than prose. Each response contains the scene, two or three choices, a factual scene summary, character updates, time passed, timeline events, and three loading hints. The response is validated before it is allowed into the story state.</p>
+<p>This was an important separation: prose is allowed to be expressive, while memory has to be explicit. A beautiful paragraph can remain free to sound like fiction because continuity is carried by fields designed to be checked, merged, persisted, and sent back later.</p>
+<h2 id="choices-needed-consequences-that-survive-the-next-scene">Choices needed consequences that survive the next scene</h2>
+<p>A choice is disappointing when it changes only the opening sentence of the response.</p>
+<p>Guide Your Lore records the choice beside the scene that produced it, then folds the consequence into the next prompt. Character relationships, milestones, reputation, the world clock, and major events can also change as the story moves forward.</p>
+<p>Chapters create another boundary. When one ends, its recap is carried into the next chapter, while the last scene supplies a concrete location, time, and situation for the new opening. The engine can compress older history to control prompt size without discarding the facts that future scenes still depend on.</p>
+<p>The goal is not infinite memory. It is selective memory: keep what can alter a later decision, and let atmospheric language disappear once it has done its job.</p>
 <div class="story-demo" role="group" aria-labelledby="story-demo-title">
 <div class="story-demo-chrome">
 <span class="story-demo-lights" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -93,24 +111,6 @@
 </fieldset>
 </div>
 </div>
-<h2 id="generation-needed-memory-not-just-more-prose">Generation needed memory, not just more prose</h2>
-<p>Generating a plausible next paragraph is not the difficult part. The difficult part is making scene twelve agree with scene two.</p>
-<p>Each generation request therefore carries a structured story context rather than a loose transcript. That context includes:</p>
-<ul>
-<li>The reader’s previous choices and concise scene summaries</li>
-<li>Completed chapter recaps</li>
-<li>Named characters, their traits, relationships, and psychological arcs</li>
-<li>A world clock and a timeline of significant events</li>
-<li>The current chapter structure and narrative beat</li>
-<li>The final moment of the previous chapter</li>
-</ul>
-<p>The model also returns more than prose. Each response contains the scene, two or three choices, a factual scene summary, character updates, time passed, timeline events, and three loading hints. The response is validated before it is allowed into the story state.</p>
-<p>This was an important separation: prose is allowed to be expressive, while memory has to be explicit. A beautiful paragraph can remain free to sound like fiction because continuity is carried by fields designed to be checked, merged, persisted, and sent back later.</p>
-<h2 id="choices-needed-consequences-that-survive-the-next-scene">Choices needed consequences that survive the next scene</h2>
-<p>A choice is disappointing when it changes only the opening sentence of the response.</p>
-<p>Guide Your Lore records the choice beside the scene that produced it, then folds the consequence into the next prompt. Character relationships, milestones, reputation, the world clock, and major events can also change as the story moves forward.</p>
-<p>Chapters create another boundary. When one ends, its recap is carried into the next chapter, while the last scene supplies a concrete location, time, and situation for the new opening. The engine can compress older history to control prompt size without discarding the facts that future scenes still depend on.</p>
-<p>The goal is not infinite memory. It is selective memory: keep what can alter a later decision, and let atmospheric language disappear once it has done its job.</p>
 <h2 id="waiting-had-to-feel-like-part-of-the-world">Waiting had to feel like part of the world</h2>
 <p>AI generation creates an unavoidable pause after every choice. A spinner would explain the infrastructure, but it would also break the fiction.</p>
 <p>Instead, every generated scene includes three short ambient observations drawn from details in that scene. While the next scene is being written, those lines appear one at a time:</p>
