@@ -71,6 +71,7 @@
       .primary-button:focus-visible, .back-button:focus-visible, .character-card:focus-visible { outline: 4px solid white; outline-offset: 4px; }
       .start-arrow { display: inline-block; margin-left: 18px; transition: transform .15s; }
       .primary-button:hover .start-arrow { transform: translateX(5px); }
+      .pause-actions { margin: 18px 0 0; }
 
       #select-screen { background: rgba(4,66,126,.14); }
       .select-shell { width: min(1000px, 100%); margin: 0 auto; }
@@ -129,7 +130,7 @@
         .menu-hint { display: none; }
       }
     </style>
-    <script type="module" crossorigin src="/robocar/assets/index-Cagi3f6v.js"></script>
+    <script type="module" crossorigin src="/robocar/assets/index-ye_R90j4.js"></script>
   </head>
   <body>
     <main id="game-menu" aria-label="Game menu">
@@ -139,6 +140,7 @@
           <h1 id="game-title" class="game-title">ROBOCAR <span>POLI</span></h1>
           <p class="tagline">Explore the open road, help friends, and become the hero Brooms Town needs.</p>
           <button id="start-button" class="primary-button" type="button">START <span class="start-arrow" aria-hidden="true">▶</span></button>
+          <p class="pause-actions"><button id="change-character-button" class="primary-button" type="button" hidden>CHANGE CHARACTER <span class="start-arrow" aria-hidden="true">▶</span></button></p>
         </div>
         <p class="menu-hint">A rescue adventure is waiting for you!</p>
       </section>
@@ -147,7 +149,7 @@
         <div class="select-shell">
           <button id="back-button" class="back-button" type="button">← BACK</button>
           <h1 id="select-heading" class="select-heading">SELECT CHARACTER</h1>
-          <p class="select-subtitle">Choose your rescue hero</p>
+          <p class="select-subtitle">Choose your rescue hero — ← → to pick, Enter to play, Esc to go back</p>
           <div class="character-list">
             <button class="character-card selected" data-character="poli" type="button" aria-pressed="true">
               <span class="selected-tag">SELECTED</span>
@@ -176,7 +178,7 @@
     </main>
 
     <div id="hud">
-      Drive: WASD / arrows · Walk: camera-relative WASD / arrows · Shift run · Z transform · Space handbrake · Q/E camera · R reset<br />
+      Drive: WASD / arrows · Walk: camera-relative WASD / arrows · Shift run · Z transform · Space handbrake · Q/E camera · R reset · M mute<br />
       <b><span id="speed">0</span> km/h</b>
     </div>
   </body>
