@@ -359,6 +359,9 @@
           border: 2px solid rgba(255,255,255,.8); border-radius: 50%; cursor: pointer;
           background: rgba(13,72,130,.55); color: white; font: inherit; font-size: 21px; font-weight: 1000;
           text-shadow: none;
+          /* The icons are strokes on `currentColor`, so a shadow on the button's own text would
+             not reach them; they carry their own instead, or they vanish over a pale road. */
+          filter: drop-shadow(0 1px 2px rgba(0,40,79,.45));
           /* #hud is click-through so the road behind it stays drivable; these buttons are the one
              piece of it that takes taps, and only once a game is actually running. */
           pointer-events: none;
@@ -366,6 +369,9 @@
         /* The media query's `display` would otherwise beat the attribute — a browser with no
            Fullscreen API has its button hidden from script. */
         .hud-toggle[hidden] { display: none; }
+        /* 24 of the button's 44 leaves the ring around each icon that makes it read as a target.
+           `pointer-events: none` so a tap always reports the button, never a path inside it. */
+        .hud-toggle svg { width: 24px; height: 24px; pointer-events: none; }
         body.game-running .hud-toggle { pointer-events: auto; }
         #hud-help { display: none; }
         #hud.help-open #hud-help { display: block; margin-bottom: 5px; }
@@ -389,17 +395,21 @@
           pointer-events: none;
         }
         .touch-cluster { position: absolute; bottom: 0; display: flex; gap: 14px; }
+        /* Steering is a left/right pair, so it lies flat; throttle and brake are one axis, so they
+           stack the way the thumb rocks over them. The brake is nudged inward off the throttle's
+           column: the thumb swings on an arc, not a line, and the lower button has to come to it. */
         .touch-cluster.left { left: 0; }
-        .touch-cluster.right { right: 0; }
+        .touch-cluster.right { right: 0; flex-direction: column; align-items: flex-end; }
+        .touch-cluster.right [data-touch="brake"] { margin-right: 26px; }
         .touch-button {
           pointer-events: auto;
           /* No panning, no double-tap zoom, no long-press selection: every gesture on these is a
              hold, and the browser must not claim any of them. */
           touch-action: none; -webkit-touch-callout: none;
           display: inline-flex; align-items: center; justify-content: center;
-          width: 76px; height: 76px; padding: 0;
+          width: 96px; height: 96px; padding: 0;
           border: 3px solid rgba(255,255,255,.75); border-radius: 50%;
-          background: rgba(13,72,130,.42); color: white; font: inherit; font-size: 27px;
+          background: rgba(13,72,130,.42); color: white; font: inherit; font-size: 34px;
           font-weight: 1000; line-height: 1;
           box-shadow: 0 4px 12px rgba(0,40,79,.3);
           transition: background .08s, transform .08s;
@@ -408,16 +418,44 @@
            holds it — releasing on a slide would cut the throttle over a bump — and `:active`
            follows the pointer instead of the state the game is actually reading. */
         .touch-button.is-down { background: rgba(255,226,61,.85); color: #173e72; transform: scale(.94); }
+
+        /* Half the button, so the ring around the icon still reads as the target. Taps land on
+           the button, never on a path inside it. */
+        .touch-button svg { width: 48px; height: 48px; pointer-events: none; }
+        /* The arrow is authored pointing right, so right is the one direction that needs nothing
+           done to it. Positive steer is a left turn — see .ai/steering/structure.md. */
+        [data-touch="steerLeft"] svg { transform: rotate(180deg); }
+        [data-touch="throttle"] svg { transform: rotate(-90deg); }
+        [data-touch="brake"] svg { transform: rotate(90deg); }
+
+        /* Stacked over the left arrow rather than sitting in the row with it: a one-shot among
+           four held directions, and a thumb that misses the turn must not transform instead. */
+        #touch-transform {
+          position: absolute; left: 0; bottom: 100%; margin-bottom: 14px;
+          width: 62px; height: 62px; border-width: 2px;
+        }
+        #touch-transform svg { width: 32px; height: 32px; }
+        /* The icon is the form the button *goes to*, not the one the character is in. */
+        #touch-transform[data-target="robot"] .icon-car,
+        #touch-transform[data-target="car"] .icon-robot { display: none; }
+        /* The `display` above would otherwise beat the attribute, and the button is hidden from
+           script for every character that has only one form. */
+        .touch-button[hidden] { display: none; }
       }
 
-      /* A phone on its side has ~390 px of height for the whole game; full-size buttons there
-         reach a third of the way up the screen and sit on the road. */
+      /* A phone on its side has ~390 px of height for the whole game, and the throttle/brake
+         column spends that budget twice over; full-size buttons there reach halfway up the screen
+         and sit on the road. */
       @media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
-        .touch-button { width: 62px; height: 62px; font-size: 22px; border-width: 2px; }
+        .touch-button { width: 74px; height: 74px; font-size: 26px; border-width: 2px; }
+        .touch-button svg { width: 38px; height: 38px; }
         .touch-cluster { gap: 10px; }
+        .touch-cluster.right [data-touch="brake"] { margin-right: 20px; }
+        #touch-transform { width: 50px; height: 50px; margin-bottom: 10px; }
+        #touch-transform svg { width: 26px; height: 26px; }
       }
     </style>
-    <script type="module" crossorigin src="/robocar/assets/index-BOBzplTv.js"></script>
+    <script type="module" crossorigin src="/robocar/assets/index-DNJY1MtK.js"></script>
   </head>
   <body>
     <main id="game-menu" aria-label="Game menu">
@@ -510,17 +548,52 @@
     </main>
 
     <div id="hud">
+      <!-- The icons are inlined rather than loaded: `reference/` is the masters folder and ships
+           nothing, and four 24px glyphs are smaller than the four requests fetching them would
+           cost. `currentColor` in place of the authored #ffffff so they follow the button's own
+           colour, and `aria-hidden` because every button already carries an `aria-label`. -->
       <div class="hud-buttons">
-        <button id="hud-swap-button" class="hud-toggle" type="button" aria-label="Change character">⇄</button>
+        <button id="hud-home-button" class="hud-toggle" type="button" aria-label="Back to the start">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M3.36 19.24C3.6 20.66 4.96 21.81 6.4 21.81H17.6C19.03 21.81 20.4 20.65 20.64 19.24L21.97 11.28C22.13 10.3 21.63 8.99 20.86 8.37L13.93 2.83C12.86 1.97 11.13 1.97 10.07 2.82L3.14 8.37C2.36 8.99 1.86 10.3 2.03 11.28L2.71 15.37" />
+            <path d="M12 10.5C10.62 10.5 9.5 11.62 9.5 13C9.5 14.38 10.62 15.5 12 15.5C13.38 15.5 14.5 14.38 14.5 13" />
+          </svg>
+        </button>
+        <button id="hud-pause-button" class="hud-toggle" type="button" aria-label="Pause">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M17.15 13.82L14.11 16.86" />
+            <path d="M6.85 13.82H17.15" />
+            <path d="M6.85 10.18L9.89 7.14" />
+            <path d="M14.11 10.18H6.85" />
+            <path d="M17.15 10.18H16.63" />
+            <path d="M4 6C2.75 7.67 2 9.75 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C10.57 2 9.2 2.3 7.97 2.85" />
+          </svg>
+        </button>
         <button id="hud-help-toggle" class="hud-toggle" type="button"
-                aria-expanded="false" aria-controls="hud-help" aria-label="Show the controls">i</button>
+                aria-expanded="false" aria-controls="hud-help" aria-label="Show the controls">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M12 8V13" />
+            <path d="M4 6C2.75 7.67 2 9.75 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C10.57 2 9.2 2.3 7.97 2.85" />
+            <path d="M11.99 16H12" stroke-width="2" />
+          </svg>
+        </button>
         <button id="fullscreen-toggle" class="hud-toggle" type="button"
-                aria-pressed="false" aria-label="Full screen">⛶</button>
+                aria-pressed="false" aria-label="Full screen">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M2 9.75C1.59 9.75 1.25 9.41 1.25 9V6.5C1.25 3.61 3.61 1.25 6.5 1.25H9C9.41 1.25 9.75 1.59 9.75 2C9.75 2.41 9.41 2.75 9 2.75H6.5C4.43 2.75 2.75 4.43 2.75 6.5V9C2.75 9.41 2.41 9.75 2 9.75Z" />
+            <path d="M22 9.75C21.59 9.75 21.25 9.41 21.25 9V6.5C21.25 4.43 19.57 2.75 17.5 2.75H15C14.59 2.75 14.25 2.41 14.25 2C14.25 1.59 14.59 1.25 15 1.25H17.5C20.39 1.25 22.75 3.61 22.75 6.5V9C22.75 9.41 22.41 9.75 22 9.75Z" />
+            <path d="M17.5 22.75H16C15.59 22.75 15.25 22.41 15.25 22C15.25 21.59 15.59 21.25 16 21.25H17.5C19.57 21.25 21.25 19.57 21.25 17.5V16C21.25 15.59 21.59 15.25 22 15.25C22.41 15.25 22.75 15.59 22.75 16V17.5C22.75 20.39 20.39 22.75 17.5 22.75Z" />
+            <path d="M9 22.75H6.5C3.61 22.75 1.25 20.39 1.25 17.5V15C1.25 14.59 1.59 14.25 2 14.25C2.41 14.25 2.75 14.59 2.75 15V17.5C2.75 19.57 4.43 21.25 6.5 21.25H9C9.41 21.25 9.75 21.59 9.75 22C9.75 22.41 9.41 22.75 9 22.75Z" />
+          </svg>
+        </button>
       </div>
       <div id="hud-help">
         Drive: WASD / arrows · Walk: camera-relative WASD / arrows · Shift run · Z transform · Space handbrake · Q/E camera · R reset · M mute<br />
         Gamepad: RT/LT drive · stick steer &amp; walk · A handbrake / run · X transform · Y reset · LB/RB camera · Back mute · Start pause — remap under CONTROLLER<br />
-        Touch: ▲ accelerate · ▼ brake / reverse · ◀ ▶ steer
+        Touch: ▲ accelerate · ▼ brake / reverse · ◀ ▶ steer · the small button above ◀ transforms
       </div>
       <div id="input-debug" hidden></div>
       <b><span id="speed">0</span> km/h</b>
@@ -529,14 +602,54 @@
     <!-- Steering under the left thumb, throttle and brake under the right, which is the layout
          every driving game on a phone has trained thumbs for. It follows #game-menu in the DOM
          because the rule that shows it is a sibling combinator on the menu's closed state. -->
+    <!-- One arrow, four directions: the pad's buttons all carry `direct-right` and turn it with
+         CSS, so the four of them cannot drift apart the way four hand-edited copies would. -->
+    <svg hidden aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="icon-direct" viewBox="0 0 24 24">
+        <path d="M2.71 17.02L4.45 13.54C4.93 12.57 4.93 11.44 4.45 10.47L2.71 6.98C1.22 4 4.43 0.85 7.38 2.41L8.92 3.23C9.14 3.34 9.31 3.52 9.4 3.74L15.09 16.39C15.32 16.91 15.11 17.52 14.61 17.78L7.37 21.59C4.43 23.15 1.22 20 2.71 17.02Z" />
+        <path opacity="0.4" d="M16.31 15.6L12.58 7.32C12.16 6.39 13.16 5.45 14.06 5.93L19.83 8.97C22.28 10.26 22.28 13.76 19.83 15.05L17.79 16.12C17.24 16.4 16.57 16.17 16.31 15.6Z" />
+      </symbol>
+    </svg>
+
     <div id="touch-controls">
       <div class="touch-cluster left">
-        <button class="touch-button" type="button" data-touch="steerLeft" aria-label="Steer left">◀</button>
-        <button class="touch-button" type="button" data-touch="steerRight" aria-label="Steer right">▶</button>
+        <!-- Out of the row's flow and stacked over the left arrow, because it is not a fifth
+             direction: it is a one-shot, it is smaller so a thumb aiming for the turn does not
+             find it, and it is `hidden` until a character that can actually transform is
+             loaded — `input/touch.js` unhides it and picks which of the two icons shows. -->
+        <!-- No `data-target` here on purpose: the first `setTransform` has to see it change, so
+             it writes the matching label rather than leaving this one behind. -->
+        <button id="touch-transform" class="touch-button" type="button" hidden aria-label="Transform">
+          <svg class="icon-robot" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M11 18V21C11 21.55 10.55 22 10 22C9.45 22 9 21.55 9 21V18H11Z" />
+            <path d="M15 18V21C15 21.55 14.55 22 14 22C13.45 22 13 21.55 13 21V18H15Z" />
+            <path opacity="0.4" d="M17 11V16C17 17.1 16.1 18 15 18H9C7.9 18 7 17.1 7 16V11C7 9.9 7.9 9 9 9H15C16.1 9 17 9.9 17 11Z" />
+            <path d="M5 11V15C5 15.55 4.55 16 4 16C3.45 16 3 15.55 3 15V11C3 10.45 3.45 10 4 10C4.55 10 5 10.45 5 11Z" />
+            <path d="M21 11V15C21 15.55 20.55 16 20 16C19.45 16 19 15.55 19 15V11C19 10.45 19.45 10 20 10C20.55 10 21 10.45 21 11Z" />
+            <path opacity="0.4" d="M9.6 7.6H14.4C15.28 7.6 16 6.88 16 6C16 3.79 14.21 2 12 2C9.79 2 8 3.79 8 6C8 6.88 8.72 7.6 9.6 7.6Z" />
+          </svg>
+          <svg class="icon-car" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+            <path opacity="0.4" d="M22.18 13.66C22.03 12.01 21.59 10.25 18.38 10.25H5.62C2.41 10.25 1.98 12.01 1.82 13.66L1.26 19.75C1.19 20.51 1.44 21.27 1.96 21.84C2.49 22.42 3.24 22.75 4.04 22.75H5.92C7.54 22.75 7.85 21.82 8.05 21.21L8.25 20.61C8.48 19.92 8.54 19.75 9.44 19.75H14.56C15.46 19.75 15.49 19.85 15.75 20.61L15.95 21.21C16.15 21.82 16.46 22.75 18.08 22.75H19.96C20.75 22.75 21.51 22.42 22.04 21.84C22.56 21.27 22.81 20.51 22.74 19.75L22.18 13.66Z" />
+            <path d="M21 7.25H20C19.99 7.25 19.99 7.25 19.98 7.25L19.6 5.44C19.24 3.69 18.49 2.08 15.51 2.08H12.75H11.25H8.49C5.51 2.08 4.76 3.69 4.4 5.44L4.02 7.25C4.01 7.25 4.01 7.25 4 7.25H3C2.59 7.25 2.25 7.59 2.25 8C2.25 8.41 2.59 8.75 3 8.75H3.71L3.29 10.75C3.83 10.44 4.58 10.25 5.62 10.25H18.38C19.42 10.25 20.17 10.44 20.71 10.75L20.29 8.75H21C21.41 8.75 21.75 8.41 21.75 8C21.75 7.59 21.41 7.25 21 7.25Z" />
+            <path d="M9 15.75H6C5.59 15.75 5.25 15.41 5.25 15C5.25 14.59 5.59 14.25 6 14.25H9C9.41 14.25 9.75 14.59 9.75 15C9.75 15.41 9.41 15.75 9 15.75Z" />
+            <path d="M18 15.75H15C14.59 15.75 14.25 15.41 14.25 15C14.25 14.59 14.59 14.25 15 14.25H18C18.41 14.25 18.75 14.59 18.75 15C18.75 15.41 18.41 15.75 18 15.75Z" />
+          </svg>
+        </button>
+        <button class="touch-button" type="button" data-touch="steerLeft" aria-label="Steer left">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><use href="#icon-direct" /></svg>
+        </button>
+        <button class="touch-button" type="button" data-touch="steerRight" aria-label="Steer right">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><use href="#icon-direct" /></svg>
+        </button>
       </div>
+      <!-- Throttle before brake: the cluster is a column, so DOM order is top-to-bottom here. -->
       <div class="touch-cluster right">
-        <button class="touch-button" type="button" data-touch="brake" aria-label="Brake and reverse">▼</button>
-        <button class="touch-button" type="button" data-touch="throttle" aria-label="Accelerate">▲</button>
+        <button class="touch-button" type="button" data-touch="throttle" aria-label="Accelerate">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><use href="#icon-direct" /></svg>
+        </button>
+        <button class="touch-button" type="button" data-touch="brake" aria-label="Brake and reverse">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><use href="#icon-direct" /></svg>
+        </button>
       </div>
     </div>
   </body>
