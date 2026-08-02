@@ -33,10 +33,29 @@
         -webkit-tap-highlight-color: transparent;
         user-select: none; -webkit-user-select: none;
       }
-      canvas { display: block; touch-action: none; }
+      /* An SVG in an HTML document does *not* pick up the UA's `[hidden] { display: none }` — that
+         rule is scoped to the HTML namespace — so the icon sprite below the markup laid itself out
+         at the SVG default of 300x150 and pushed the game canvas 154 px down the page. Every
+         `hidden` sprite or symbol needs this, or the view is shoved off the bottom of the screen. */
+      svg[hidden] { display: none; }
+
+      /* Pinned to the viewport rather than left in the body's flow, so nothing added to the page
+         can ever push it off-centre again. Sizing it here rather than from `innerWidth`/
+         `innerHeight` in script also keeps it right on an iOS home-screen app, where those two lag
+         a rotation and are never corrected. `core/scene.js` measures this box and passes
+         `setSize(w, h, false)`, so three.js writes the drawing buffer and leaves the CSS size to
+         these rules. The `z-index` is what the fixed UI over it is layered against — see `#hud`,
+         `#touch-controls` (5) and `#game-menu` (10). The width and height are spelled out because
+         a canvas is a replaced element: `inset: 0` alone leaves it at its intrinsic 300x150. */
+      canvas {
+        position: fixed; inset: 0; z-index: 0; display: block;
+        width: 100%; height: 100%; touch-action: none;
+      }
 
       #hud {
-        position: fixed; opacity: 0; transform: translateY(-8px);
+        /* Above the canvas, which now carries a `z-index` of its own and is the last thing in the
+           DOM, so tree order alone would put it over the readout. */
+        position: fixed; z-index: 4; opacity: 0; transform: translateY(-8px);
         left: max(14px, env(safe-area-inset-left)); top: max(14px, env(safe-area-inset-top));
         font: 14px/1.5 system-ui, sans-serif; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6);
         pointer-events: none; transition: opacity .25s, transform .25s;
@@ -455,7 +474,7 @@
         #touch-transform svg { width: 26px; height: 26px; }
       }
     </style>
-    <script type="module" crossorigin src="/robocar/assets/index-DNJY1MtK.js"></script>
+    <script type="module" crossorigin src="/robocar/assets/index-Dn30Kl3R.js"></script>
   </head>
   <body>
     <main id="game-menu" aria-label="Game menu">
