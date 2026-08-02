@@ -2,20 +2,51 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Robocar Poli — Rescue Adventure</title>
+    <!-- viewport-fit=cover is what makes the env(safe-area-inset-*) below report anything: without
+         it a notched phone in landscape letterboxes the page instead of handing us the insets. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#13a6e8" />
+    <!-- Added to the home screen, the game launches without any browser chrome — which is the
+         only full screen an iPhone has, since Safari there has no Fullscreen API for the round
+         button in the HUD to call. `/robocar/` because the Pages deploy serves from /robocar/;
+         everything the manifest itself points at is relative to it and needs no such help. -->
+    <link rel="manifest" href="/robocar/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/robocar/icons/icon-180.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- `black-translucent` hands the status bar's height to the page, which the safe-area
+         insets already account for; anything else letterboxes the top of the game. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Poli" />
+    <title>Robocar Rescue Adventure</title>
     <style>
       :root { font-family: "Trebuchet MS", "Arial Rounded MT Bold", system-ui, sans-serif; color: #102951; }
       * { box-sizing: border-box; }
-      html, body { margin: 0; height: 100%; overflow: hidden; background: #87ceeb; }
-      canvas { display: block; }
+      html, body {
+        margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: #87ceeb;
+        overscroll-behavior: none;          /* no pull-to-refresh or rubber-band over the game */
+        -webkit-text-size-adjust: 100%;     /* iOS otherwise inflates text when it rotates */
+      }
+      body {
+        touch-action: manipulation;         /* kills the double-tap zoom and its 300 ms click delay
+                                               while leaving the menu's own scrolling alone */
+        -webkit-tap-highlight-color: transparent;
+        user-select: none; -webkit-user-select: none;
+      }
+      canvas { display: block; touch-action: none; }
 
       #hud {
-        position: fixed; left: 14px; top: 14px; opacity: 0; transform: translateY(-8px);
+        position: fixed; opacity: 0; transform: translateY(-8px);
+        left: max(14px, env(safe-area-inset-left)); top: max(14px, env(safe-area-inset-top));
         font: 14px/1.5 system-ui, sans-serif; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6);
         pointer-events: none; transition: opacity .25s, transform .25s;
       }
       body.game-running #hud { opacity: 1; transform: none; }
+      /* Off the phone the control list is always on screen and the round buttons over the game
+         do not exist. The phone rules that turn them on live in the media queries below. */
+      .hud-buttons { display: none; }
+      /* Likewise the driving pad: a device with a mouse has the keyboard this replaces. */
+      #touch-controls { display: none; }
 
       #game-menu {
         position: fixed; inset: 0; z-index: 10; overflow: hidden;
@@ -37,7 +68,16 @@
         transform: perspective(350px) rotateX(20deg);
       }
       #game-menu.is-closing { opacity: 0; visibility: hidden; pointer-events: none; }
-      .menu-screen { position: relative; z-index: 1; min-height: 100%; padding: clamp(24px, 5vw, 72px); }
+      /* The insets are zero everywhere but a notched phone, so `max()` leaves the desktop padding
+         exactly as it was and only grows where the rounded corners and the camera cut in. */
+      .menu-screen {
+        position: relative; z-index: 1; min-height: 100%;
+        padding:
+          max(clamp(24px, 5vw, 72px), env(safe-area-inset-top))
+          max(clamp(24px, 5vw, 72px), env(safe-area-inset-right))
+          max(clamp(24px, 5vw, 72px), env(safe-area-inset-bottom))
+          max(clamp(24px, 5vw, 72px), env(safe-area-inset-left));
+      }
       .menu-screen[hidden] { display: none; }
       .eyebrow {
         display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 7px 12px;
@@ -71,13 +111,25 @@
       .primary-button:focus-visible, .back-button:focus-visible, .character-card:focus-visible { outline: 4px solid white; outline-offset: 4px; }
       .start-arrow { display: inline-block; margin-left: 18px; transition: transform .15s; }
       .primary-button:hover .start-arrow { transform: translateX(5px); }
-      .pause-actions { margin: 18px 0 0; }
+      /* A column with a gap rather than margins on each button: CHANGE CHARACTER is `hidden`
+         until a game is running, and a gap collapses with it where a margin would not. */
+      .landing-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
 
       #select-screen { background: rgba(4,66,126,.14); }
-      .select-shell { width: min(1000px, 100%); margin: 0 auto; }
+      /* `:not([hidden])` because an id selector would otherwise beat `.menu-screen[hidden]`
+         and leave the screen displayed while hidden. */
+      #select-screen:not([hidden]) { display: flex; flex-direction: column; }
+      /* The shell takes the leftover height and hands it down to the card list, so the cards
+         grow into the empty space under them instead of the screen ending two thirds down. */
+      .select-shell {
+        display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
+        width: min(1000px, 100%); margin: 0 auto; padding-bottom: clamp(16px, 4vh, 48px);
+      }
       .back-button {
         border: 0; border-radius: 999px; padding: 10px 17px; cursor: pointer; color: white;
         background: rgba(13,72,130,.45); font: inherit; font-weight: 900;
+        /* a flex child stretches to the shell's full width otherwise */
+        align-self: flex-start;
       }
       .select-heading {
         margin: 3vh 0 7px; color: white; text-align: center; font-size: clamp(36px, 6vw, 72px);
@@ -87,9 +139,11 @@
       .character-list {
         display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
         justify-items: center; gap: clamp(16px, 3vw, 34px);
+        flex: 1 1 auto; min-height: 0;   /* the row stretches; `min-height` lets it shrink too */
       }
       .character-card {
-        position: relative; width: 100%; max-width: 300px; min-height: 310px; padding: 24px;
+        position: relative; display: flex; flex-direction: column;
+        width: 100%; max-width: 300px; height: 100%; min-height: 310px; max-height: 460px; padding: 24px;
         border: 4px solid rgba(255,255,255,.65); border-radius: 30px; background: rgba(255,255,255,.92);
         color: #15385f; text-align: left; font: inherit; transition: transform .18s, box-shadow .18s, border-color .18s;
       }
@@ -98,11 +152,22 @@
         border-color: #ffe23d; box-shadow: 0 0 0 7px rgba(255,226,61,.35), 0 18px 35px rgba(0,50,99,.28);
         transform: translateY(-7px);
       }
+      /* `flex` rather than `height`: the portrait is the part of the card that absorbs the extra
+         height the card is given. */
       .character-portrait {
-        display: grid; place-items: center; height: 170px; margin-bottom: 18px; border-radius: 22px;
+        display: grid; place-items: center; flex: 1 1 170px; min-height: 120px;
+        margin-bottom: 18px; border-radius: 22px;
         background: linear-gradient(145deg, #e8f8ff, #9fe1ff); overflow: hidden;
       }
-      .character-portrait img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 8px rgba(10,55,90,.2)); }
+      /* `cover` + a centred position: the portrait box fills edge to edge and the crop falls
+         evenly on all sides, rather than `contain` leaving the car floating at the top. */
+      .character-portrait img {
+        width: 100%; height: 100%; object-fit: cover; object-position: center;
+        filter: drop-shadow(0 10px 8px rgba(10,55,90,.2));
+      }
+      /* A wrapper so the name and the line under it stay one block when the card turns sideways
+         in portrait — a flex row cannot group two siblings on its own. */
+      .character-info { display: block; }
       .character-card h2 { margin: 0; font-size: 28px; }
       .character-card p { margin: 6px 0 0; color: #54708e; font-weight: 700; }
       .selected-tag {
@@ -111,36 +176,264 @@
       }
       .play-row { margin-top: 34px; text-align: center; }
       .menu-hint {
-        position: absolute; left: clamp(24px,5vw,72px); bottom: 22px; color: rgba(255,255,255,.82);
-        font-size: 12px; font-weight: 800;
+        position: absolute; color: rgba(255,255,255,.82); font-size: 12px; font-weight: 800;
+        left: max(clamp(24px,5vw,72px), env(safe-area-inset-left));
+        bottom: max(22px, env(safe-area-inset-bottom));
       }
 
+      #controls-screen { background: rgba(4,66,126,.14); }
+      .controller-status {
+        margin: 0 0 18px; padding: 11px 15px; border-radius: 14px; word-break: break-word;
+        background: rgba(10,77,143,.32); color: white; font-size: 13px; font-weight: 800;
+      }
+      .binding-list {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 9px;
+        max-height: min(46vh, 420px); overflow-y: auto; padding-right: 4px;
+      }
+      .binding-row {
+        display: flex; align-items: center; justify-content: space-between; gap: 14px;
+        padding: 12px 16px; border: 3px solid transparent; border-radius: 15px; cursor: pointer;
+        background: rgba(255,255,255,.92); color: #15385f; font: inherit; font-weight: 800;
+        text-align: left;
+      }
+      .binding-row:focus-visible { outline: none; border-color: #ffe23d; box-shadow: 0 0 0 5px rgba(255,226,61,.35); }
+      .binding-value {
+        flex: none; padding: 5px 11px; border-radius: 999px; background: #e8f3ff;
+        color: #2a5c93; font-size: 12px; font-weight: 1000; letter-spacing: .05em;
+      }
+      #quality-screen { background: rgba(4,66,126,.14); }
+      .quality-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+      .quality-option {
+        display: grid; gap: 5px; padding: 20px 14px; border: 4px solid transparent; border-radius: 22px;
+        cursor: pointer; background: rgba(255,255,255,.92); color: #15385f; font: inherit;
+        text-align: center; transition: transform .18s, box-shadow .18s, border-color .18s;
+      }
+      .quality-option.selected {
+        border-color: #ffe23d; box-shadow: 0 0 0 6px rgba(255,226,61,.35); transform: translateY(-4px);
+      }
+      .quality-option:focus-visible { outline: none; border-color: white; box-shadow: 0 0 0 6px rgba(255,255,255,.45); }
+      .quality-label { font-size: 22px; font-weight: 1000; letter-spacing: .05em; }
+      .quality-note { color: #54708e; font-size: 12px; font-weight: 800; }
+      .quality-hint { margin: 18px 0 0; color: rgba(255,255,255,.85); font-size: 13px; font-weight: 800; text-align: center; }
+      .quality-hint[hidden] { display: none; }
+
+      .capture-overlay {
+        position: absolute; inset: 0; z-index: 2; display: grid; place-items: center;
+        background: rgba(6,45,84,.72);
+      }
+      .capture-overlay[hidden] { display: none; }
+      .capture-card {
+        padding: 34px 48px; border-radius: 26px; background: white; text-align: center;
+        box-shadow: 0 20px 45px rgba(0,40,79,.35);
+      }
+      .capture-title { margin: 0; font-size: 30px; font-weight: 1000; letter-spacing: .04em; }
+      .capture-action { margin: 8px 0 0; color: #54708e; font-size: 18px; font-weight: 800; }
+      .capture-hint { margin: 16px 0 0; color: #8ba3bb; font-size: 12px; font-weight: 800; }
+
       @media (max-width: 680px) {
+        .binding-list { max-height: 44vh; }
+        .capture-card { padding: 26px 30px; }
         .menu-screen { padding: 24px 18px; }
         .landing-copy { width: 100%; padding-top: 10vh; text-align: center; }
+        .landing-actions { align-items: center; }
         .game-title { font-size: clamp(60px, 24vw, 100px); }
         .tagline { margin-left: auto; margin-right: auto; }
         .character-list { gap: 12px; }
         .character-card { min-height: 245px; padding: 13px; border-radius: 22px; }
-        .character-portrait { height: 125px; }
+        .character-portrait { flex-basis: 125px; min-height: 90px; }
         .character-card h2 { font-size: 21px; }
         .character-card p { font-size: 12px; }
         .selected-tag { top: 8px; right: 8px; font-size: 9px; }
         .play-row { margin-top: 24px; }
         .menu-hint { display: none; }
+        #hud { max-width: calc(100vw - 28px); font-size: 11px; }
+      }
+
+      /* ---------- phone in portrait ---------- */
+      /* Stood up, a phone is narrow rather than short: ~350 px of width and height to spare. So
+         nothing here shrinks — the layout turns to run down the axis that has the room. A tablet
+         in portrait is 768 px wide, misses this, and keeps the desktop layout, which fits. */
+      @media (orientation: portrait) and (max-width: 680px) {
+        .landing-copy { padding-top: 7vh; }
+
+        /* Three cards across at ~110 px each is a column of clipped words. One card per row with
+           the portrait on its side reads at a glance and puts all three within a thumb's reach. */
+        .character-list { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+        .character-card {
+          display: flex; align-items: center; gap: 14px; width: 100%; max-width: none;
+          min-height: 0; padding: 11px; border-radius: 20px;
+        }
+        .character-card.selected { transform: none; }   /* a lift on a stacked list only looks misaligned */
+        .character-portrait { flex: none; width: 96px; height: 96px; margin: 0; border-radius: 15px; }
+        .character-info { flex: 1 1 auto; min-width: 0; padding-right: 74px; }   /* clear of the tag */
+        .character-card h2 { font-size: 22px; }
+        .character-card p { font-size: 12px; }
+        .selected-tag { top: 12px; right: 12px; }
+
+        .quality-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+
+      /* ---------- phone in landscape ---------- */
+      /* About 390 px of height for everything, so nothing here is a scaled-down portrait layout:
+         the landing screen turns side by side and every heading gives its height to the content
+         below it. The ceiling is above every phone and below a tablet on its side (768 px).
+         This block sits after the width query above because both match a phone held sideways. */
+      @media (orientation: landscape) and (max-height: 560px) {
+        /* Safety net for a device shorter than the numbers below were fitted to: nothing in the
+           menu should ever end up clipped and unreachable. It scrolls on the screen rather than
+           on #game-menu, whose ::before/::after hang below the fold on purpose and would add
+           a screenful of empty scroll under every menu. `height` rather than `min-height`, or
+           the box grows with its content instead of scrolling it. */
+        .menu-screen {
+          height: 100%; overflow-y: auto;
+          padding:
+            max(12px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
+            max(12px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+        }
+
+        .landing-copy {
+          display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+          gap: clamp(16px, 4vw, 48px); width: 100%; min-height: 100%; padding-top: 0;
+          text-align: left;
+        }
+        .eyebrow { margin-bottom: 8px; padding: 5px 10px; font-size: 10px; }
+        .game-title { font-size: clamp(38px, 7vh, 62px); }
+        .tagline { margin: 12px 0 0; font-size: clamp(12px, 3.2vh, 15px); }
+        /* Side by side, the buttons sit in the right-hand column: aligned to its right edge they
+           stack flush against the screen edge instead of ragged down the middle. */
+        .landing-actions { align-items: flex-end; gap: 9px; }
+        .primary-button {
+          min-width: 190px; padding: 11px 20px; border-radius: 14px; font-size: 15px;
+          box-shadow: 0 5px 0 #e49416, 0 8px 16px rgba(0,40,79,.22);
+        }
+        .primary-button:hover { box-shadow: 0 7px 0 #e49416, 0 10px 18px rgba(0,40,79,.24); }
+        .start-arrow { margin-left: 12px; }
+        .menu-hint { display: none; }
+
+        .back-button { padding: 7px 13px; font-size: 13px; }
+        .select-heading { margin: 0 0 4px; font-size: clamp(24px, 5.5vh, 38px); text-shadow: 0 3px 0 #115ba5; }
+        .select-subtitle { margin: 0 0 10px; font-size: 12px; }
+        .character-list { gap: 10px; }
+        .character-card { min-height: 0; max-height: none; padding: 10px; border-radius: 18px; border-width: 3px; }
+        .character-card.selected { transform: translateY(-4px); }
+        .character-portrait {
+          flex-basis: clamp(64px, 20vh, 110px); min-height: 56px; margin-bottom: 8px; border-radius: 14px;
+        }
+        .character-card h2 { font-size: 18px; }
+        .character-card p { margin-top: 2px; font-size: 11px; }
+        .selected-tag { top: 6px; right: 6px; padding: 4px 7px; font-size: 9px; }
+        .play-row { margin-top: 12px; }
+
+        .controller-status { margin: 0 0 8px; padding: 7px 11px; font-size: 11px; }
+        .binding-list { max-height: 40vh; gap: 6px; }
+        .binding-row { padding: 7px 12px; border-width: 2px; font-size: 13px; }
+        .capture-card { padding: 18px 26px; }
+        .capture-title { font-size: 22px; }
+        .capture-action { font-size: 15px; }
+        .capture-hint { margin-top: 10px; }
+
+        .quality-option { padding: 11px 10px; border-width: 3px; border-radius: 16px; }
+        .quality-label { font-size: 17px; }
+        .quality-note { font-size: 11px; }
+        .quality-hint { margin-top: 10px; font-size: 11px; }
+
+        #hud { font-size: 11px; max-width: 62vw; }
+      }
+
+      /* ---------- the control list on a phone ---------- */
+      /* Both phone shapes, held either way: two lines of key names eat a third of the screen and
+         are read once. They fold behind a round (i) beside the speed, and only the readout —
+         the part worth watching while driving — stays up. */
+      @media (max-width: 680px), (orientation: landscape) and (max-height: 560px) {
+        /* Out of the HUD's flow and into the opposite corner: the top left is the speed's, and a
+           thumb reaches the far corner without covering the road the car is heading down. */
+        .hud-buttons {
+          position: fixed;
+          top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right));
+          display: flex; gap: 10px;
+        }
+        /* 44px is the smallest target a thumb hits reliably while the car is moving. */
+        .hud-toggle {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 44px; height: 44px; padding: 0;
+          border: 2px solid rgba(255,255,255,.8); border-radius: 50%; cursor: pointer;
+          background: rgba(13,72,130,.55); color: white; font: inherit; font-size: 21px; font-weight: 1000;
+          text-shadow: none;
+          /* #hud is click-through so the road behind it stays drivable; these buttons are the one
+             piece of it that takes taps, and only once a game is actually running. */
+          pointer-events: none;
+        }
+        /* The media query's `display` would otherwise beat the attribute — a browser with no
+           Fullscreen API has its button hidden from script. */
+        .hud-toggle[hidden] { display: none; }
+        body.game-running .hud-toggle { pointer-events: auto; }
+        #hud-help { display: none; }
+        #hud.help-open #hud-help { display: block; margin-bottom: 5px; }
+      }
+
+      /* ---------- the driving pad ---------- */
+      /* Gated on the input the device has rather than on its size: a tablet is far too wide for
+         the phone queries above and still has nothing but fingers to drive with, while a touch
+         laptop keeps its keyboard and never sees this. It is on screen only while a game is
+         actually being played — `is-closing` is the menu's closed state, so the pad is not laid
+         over the character cards or the pause screen, where its buttons would eat the taps meant
+         for them. */
+      @media (hover: none) and (pointer: coarse) {
+        body.game-running #game-menu.is-closing ~ #touch-controls { display: block; }
+        #touch-controls {
+          position: fixed; z-index: 5;
+          left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right));
+          bottom: max(16px, env(safe-area-inset-bottom));
+          /* The span between the two clusters is most of the screen and stays click-through, so
+             the road behind it is still there for anything else that wants a tap. */
+          pointer-events: none;
+        }
+        .touch-cluster { position: absolute; bottom: 0; display: flex; gap: 14px; }
+        .touch-cluster.left { left: 0; }
+        .touch-cluster.right { right: 0; }
+        .touch-button {
+          pointer-events: auto;
+          /* No panning, no double-tap zoom, no long-press selection: every gesture on these is a
+             hold, and the browser must not claim any of them. */
+          touch-action: none; -webkit-touch-callout: none;
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 76px; height: 76px; padding: 0;
+          border: 3px solid rgba(255,255,255,.75); border-radius: 50%;
+          background: rgba(13,72,130,.42); color: white; font: inherit; font-size: 27px;
+          font-weight: 1000; line-height: 1;
+          box-shadow: 0 4px 12px rgba(0,40,79,.3);
+          transition: background .08s, transform .08s;
+        }
+        /* Driven by a class rather than by `:active`: a finger that slides off the button still
+           holds it — releasing on a slide would cut the throttle over a bump — and `:active`
+           follows the pointer instead of the state the game is actually reading. */
+        .touch-button.is-down { background: rgba(255,226,61,.85); color: #173e72; transform: scale(.94); }
+      }
+
+      /* A phone on its side has ~390 px of height for the whole game; full-size buttons there
+         reach a third of the way up the screen and sit on the road. */
+      @media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 560px) {
+        .touch-button { width: 62px; height: 62px; font-size: 22px; border-width: 2px; }
+        .touch-cluster { gap: 10px; }
       }
     </style>
-    <script type="module" crossorigin src="/robocar/assets/index-COvJIjAp.js"></script>
+    <script type="module" crossorigin src="/robocar/assets/index-BOBzplTv.js"></script>
   </head>
   <body>
     <main id="game-menu" aria-label="Game menu">
       <section id="landing-screen" class="menu-screen" aria-labelledby="game-title">
         <div class="landing-copy">
-          <p class="eyebrow">BROOMS TOWN RESCUE TEAM</p>
-          <h1 id="game-title" class="game-title">ROBOCAR <span>POLI</span></h1>
-          <p class="tagline">Explore the open road, help friends, and become the hero Brooms Town needs.</p>
-          <button id="start-button" class="primary-button" type="button">START <span class="start-arrow" aria-hidden="true">▶</span></button>
-          <p class="pause-actions"><button id="change-character-button" class="primary-button" type="button" hidden>CHANGE CHARACTER <span class="start-arrow" aria-hidden="true">▶</span></button></p>
+          <div class="landing-intro">
+            <p class="eyebrow">BROOMS TOWN RESCUE TEAM</p>
+            <h1 id="game-title" class="game-title">ROBOCAR <span>POLI</span></h1>
+            <p class="tagline">Explore the open road, help friends, and become the hero Brooms Town needs.</p>
+          </div>
+          <div class="landing-actions">
+            <button id="start-button" class="primary-button" type="button">START <span class="start-arrow" aria-hidden="true">▶</span></button>
+            <button id="change-character-button" class="primary-button" type="button" hidden>CHANGE CHARACTER <span class="start-arrow" aria-hidden="true">▶</span></button>
+            <button id="controller-button" class="primary-button" type="button">CONTROLLER <span class="start-arrow" aria-hidden="true">▶</span></button>
+            <button id="quality-button" class="primary-button" type="button">GRAPHICS <span class="start-arrow" aria-hidden="true">▶</span></button>
+          </div>
         </div>
         <p class="menu-hint">A rescue adventure is waiting for you!</p>
       </section>
@@ -154,20 +447,26 @@
             <button class="character-card selected" data-character="poli" type="button" aria-pressed="true">
               <span class="selected-tag">SELECTED</span>
               <span class="character-portrait"><img src="/robocar/images/poli-character.png" alt="Poli" /></span>
-              <h2>POLI</h2>
-              <p>Brave police rescue car</p>
+              <span class="character-info">
+                <h2>POLI</h2>
+                <p>Brave police rescue car</p>
+              </span>
             </button>
             <button class="character-card" data-character="roy" type="button" aria-pressed="false">
               <span class="selected-tag" hidden>SELECTED</span>
               <span class="character-portrait"><img src="/robocar/images/roy-character.png" alt="Roy" /></span>
-              <h2>ROY</h2>
-              <p>Strong fire rescue truck</p>
+              <span class="character-info">
+                <h2>ROY</h2>
+                <p>Strong fire rescue truck</p>
+              </span>
             </button>
             <button class="character-card" data-character="amber" type="button" aria-pressed="false">
               <span class="selected-tag" hidden>SELECTED</span>
               <span class="character-portrait"><img src="/robocar/images/amber-character.png" alt="Amber" /></span>
-              <h2>AMBER</h2>
-              <p>Caring ambulance rescue car</p>
+              <span class="character-info">
+                <h2>AMBER</h2>
+                <p>Caring ambulance rescue car</p>
+              </span>
             </button>
           </div>
           <div class="play-row">
@@ -175,12 +474,70 @@
           </div>
         </div>
       </section>
+
+      <section id="controls-screen" class="menu-screen" aria-labelledby="controls-heading" hidden>
+        <div class="select-shell">
+          <button id="controls-back-button" class="back-button" type="button">← BACK</button>
+          <h1 id="controls-heading" class="select-heading">CONTROLLER</h1>
+          <p class="select-subtitle">Pick an action, then press the button or push the stick you want it on</p>
+          <p id="controller-status" class="controller-status">Looking for a controller…</p>
+          <div id="binding-list" class="binding-list"></div>
+          <div class="play-row">
+            <button id="reset-bindings-button" class="back-button" type="button">RESET TO DEFAULTS</button>
+          </div>
+        </div>
+        <div id="capture-overlay" class="capture-overlay" hidden>
+          <div class="capture-card">
+            <p class="capture-title">PRESS ANY BUTTON</p>
+            <p class="capture-action" id="capture-label"></p>
+            <p class="capture-hint">Escape to cancel</p>
+          </div>
+        </div>
+      </section>
+      <section id="quality-screen" class="menu-screen" aria-labelledby="quality-heading" hidden>
+        <div class="select-shell">
+          <button id="quality-back-button" class="back-button" type="button">← BACK</button>
+          <h1 id="quality-heading" class="select-heading">GRAPHICS</h1>
+          <p class="select-subtitle">Turn this down if the game feels slow, or to make the battery last</p>
+          <p id="quality-status" class="controller-status">Measuring…</p>
+          <div id="quality-list" class="quality-list"></div>
+          <p id="quality-hint" class="quality-hint" hidden>Smooth edges and the graphics chip need the picture rebuilt.</p>
+          <div id="quality-apply-row" class="play-row" hidden>
+            <button id="quality-apply-button" class="primary-button" type="button">APPLY <span class="start-arrow" aria-hidden="true">▶</span></button>
+          </div>
+        </div>
+      </section>
     </main>
 
     <div id="hud">
-      Drive: WASD / arrows · Walk: camera-relative WASD / arrows · Shift run · Z transform · Space handbrake · Q/E camera · R reset · M mute<br />
-      Gamepad: RT/LT drive · stick steer &amp; walk · A handbrake / run · X transform · Y reset · LB/RB &amp; right stick camera · Back mute · Start pause<br />
+      <div class="hud-buttons">
+        <button id="hud-swap-button" class="hud-toggle" type="button" aria-label="Change character">⇄</button>
+        <button id="hud-help-toggle" class="hud-toggle" type="button"
+                aria-expanded="false" aria-controls="hud-help" aria-label="Show the controls">i</button>
+        <button id="fullscreen-toggle" class="hud-toggle" type="button"
+                aria-pressed="false" aria-label="Full screen">⛶</button>
+      </div>
+      <div id="hud-help">
+        Drive: WASD / arrows · Walk: camera-relative WASD / arrows · Shift run · Z transform · Space handbrake · Q/E camera · R reset · M mute<br />
+        Gamepad: RT/LT drive · stick steer &amp; walk · A handbrake / run · X transform · Y reset · LB/RB camera · Back mute · Start pause — remap under CONTROLLER<br />
+        Touch: ▲ accelerate · ▼ brake / reverse · ◀ ▶ steer
+      </div>
+      <div id="input-debug" hidden></div>
       <b><span id="speed">0</span> km/h</b>
+    </div>
+
+    <!-- Steering under the left thumb, throttle and brake under the right, which is the layout
+         every driving game on a phone has trained thumbs for. It follows #game-menu in the DOM
+         because the rule that shows it is a sibling combinator on the menu's closed state. -->
+    <div id="touch-controls">
+      <div class="touch-cluster left">
+        <button class="touch-button" type="button" data-touch="steerLeft" aria-label="Steer left">◀</button>
+        <button class="touch-button" type="button" data-touch="steerRight" aria-label="Steer right">▶</button>
+      </div>
+      <div class="touch-cluster right">
+        <button class="touch-button" type="button" data-touch="brake" aria-label="Brake and reverse">▼</button>
+        <button class="touch-button" type="button" data-touch="throttle" aria-label="Accelerate">▲</button>
+      </div>
     </div>
   </body>
 </html>

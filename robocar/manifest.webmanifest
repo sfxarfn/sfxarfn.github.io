@@ -1,0 +1,16 @@
+{
+  "name": "Robocar Poli — Rescue Adventure",
+  "short_name": "Poli",
+  "description": "Drive Poli, Roy and Amber through an endless Brooms Town.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#13a6e8",
+  "theme_color": "#13a6e8",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
