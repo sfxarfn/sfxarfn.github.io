@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PURPLE SECTOR — Formula Racing</title>
+<meta name="theme-color" content="#00A19B">
+<meta name="description" content="Purple Sector — browser Formula racing. Two circuits, online rooms, buttery-smooth driving.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2308191a'/%3E%3Cpath d='M9 24V8h7a5.5 5.5 0 0 1 0 11h-3v5z' fill='%2300a19b'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mozilla+Headline:wght@200..700&display=swap">
+  <script type="module" crossorigin src="./assets/index-DOy6YTrj.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-Dk7ynT4X.css">
+</head>
+<body>
+<!-- Ships visible; main.js fades it once the menu has painted.  Choosing a circuit reloads
+     the page (loop/menu.js), so this is what stands in for the world being rebuilt. -->
+<div id="bootCover"><span>PURPLE SECTOR</span><b>PREPARING THE ENGINE…</b></div>
+<canvas id="c"></canvas>
+<div id="desktopGate"><div class="gateCard"><h2>PURPLE SECTOR</h2><p>Lights are ready — this build is tuned for desktop keyboard racing. Open it on a laptop or desktop browser for the full cockpit view, smoother steering control, and the complete high-speed experience.</p></div></div>
+<div id="menuRoot"></div><!-- src/menu/ renders #startMenu here, before any module reads it -->
+<div id="lapPanel" class="panel">
+  <div id="lapNum">LAP 1 / 3</div>
+  <div id="curTime">0:00.000</div>
+  <div class="trow"><span class="lab">LAST</span><span id="lastTime">—</span></div>
+  <div class="trow"><span class="lab">BEST</span><span id="bestTime">—</span></div>
+  <div class="trow"><span class="lab">DELTA</span><span id="deltaTime">—</span></div>
+  <div id="posTag">P1</div>
+</div>
+<div id="mapPanel" class="panel"><div style="font-size:11px;letter-spacing:2px;opacity:.7;margin:2px 4px 6px">TRACK MAP</div><canvas id="minimap" width="170" height="190"></canvas></div>
+<div id="speedPanel" class="panel">
+  <span id="speedVal">0</span><span id="gearVal">N</span>
+  <div id="speedUnit">KM/H</div>
+  <div id="rpmBar"><div id="rpmFill"></div></div>
+  <div id="drsTag">DRS</div>
+</div>
+<div id="sectorToast"></div>
+<div id="slipTag">SLIPSTREAM</div>
+<div id="brakeTag">BRAKE</div>
+<div id="fpsTag">— FPS</div>
+<div id="netTag">ONLINE</div>
+<div id="assistPanel" class="panel">
+  <div class="assistTitle">PRO HANDLING</div>
+  <div class="aidrow"><span>SMART STEER</span><span id="smartAid">ON</span></div>
+  <div class="aidrow"><span>TRACTION</span><span id="tcAid">READY</span></div>
+  <div class="aidrow"><span>ABS / BRAKE</span><span id="absAid">READY</span></div>
+  <div class="aidrow"><span>DAMAGE</span><span id="damageTxt">0%</span></div>
+  <div id="damageBar"><div id="damageFill"></div></div>
+</div>
+<div id="systemsPanel" class="panel">
+  <div class="sysTitle">RACE SYSTEMS</div>
+  <div class="sysrow"><span>ERS / OVERTAKE</span><span id="ersTxt">62%</span></div>
+  <div class="sysbar"><div id="ersFill" class="sysfill ers" style="width:62%"></div></div>
+  <div class="sysrow"><span>TYRE TEMP</span><span id="tyreTempTxt">82°C</span></div>
+  <div class="sysrow"><span>TYRE WEAR</span><span id="tyreWearTxt">0%</span></div>
+  <div class="sysrow"><span>GRIP</span><span id="gripTxt">100%</span></div>
+</div>
+<div id="stratPanel" class="panel">
+  <div class="sysTitle">TYRE STRATEGY</div>
+  <div class="sysrow"><span>FITTED</span><span id="tyreCompound">MEDIUM</span></div>
+  <div class="sysrow"><span>STOPS</span><span id="pitCount">0</span></div>
+  <div id="pitStatus">P TO BOX</div>
+</div>
+<div id="cameraTag">COCKPIT CAM</div>
+<div id="engineerMsg"></div>
+<div id="speedFx"></div>
+<div id="flashFx"></div>
+<div id="boostFlash"></div>
+<div id="finishFlash"></div>
+<div id="cinemaGrade"></div>
+<div id="raceTower"><div class="towerHead"><span>LIVE TIMING</span><span class="towerSub">RACE ORDER</span></div><div id="raceRows"></div></div>
+<div id="sectorBoard"><div class="sbTop"><div id="sectorLap" class="lapPos">1 / 5</div><div id="sectorStrips"><div id="sbS1">S1</div><div id="sbS2">S2</div><div id="sbS3">S3</div></div><div id="sectorCur" class="sbTime">0:00.000</div></div><div class="sbMid"><div><div class="lbl">BEST LAP</div></div><div id="sectorBest" class="val">—</div></div></div>
+<div id="visorMask"></div>
+<div id="cockpitShade"></div>
+<div id="msg"></div>
+<div id="subMsg"></div>
+<div id="hints"><b>W/↑</b> throttle&nbsp; <b>S/↓</b> brake&nbsp; <b>A·D/←→</b> steer&nbsp; <b>SHIFT</b> DRS&nbsp; <b>E</b> overtake&nbsp; <b>SPACE</b> handbrake&nbsp; <b>C</b> cameras&nbsp; <b>T</b> assists&nbsp; <b>L</b> line&nbsp; <b>G</b> ghost&nbsp; <b>F</b> fps/diag&nbsp; <b>P</b> pit&nbsp; <b>1·2·3</b> tyres&nbsp; <b>M</b> mute&nbsp; <b>R</b> restart</div>
+<div id="tunnelShade"></div>
+<div id="muteTag">SOUND ON [M]</div>
+<div id="ultraTag">ULTRA LITE VISUAL MODE</div>
+<div id="pauseScreen">
+  <span>PAUSED</span>
+  <button class="bigBtn" id="pauseLeaveBtn">LEAVE RACE</button>
+  <div class="pauseHint">ESC TO RESUME</div>
+</div>
+<div id="endScreen">
+  <h1>RACE COMPLETE</h1>
+  <div id="endMedal"></div>
+  <div class="stat" id="endTotal"></div>
+  <div class="stat" id="endBest"></div>
+  <div class="stat" id="endPos"></div>
+  <div id="endStats">
+    <span>FASTEST SECTOR<b id="endSector">—</b></span>
+    <span>LOCK-UPS<b id="endLockups">0</b></span>
+    <span>WALL HITS<b id="endWallHits">0</b></span>
+    <span>CAR CONTACTS<b id="endContacts">0</b></span>
+    <span>TYRE WEAR<b id="endWear">0%</b></span>
+    <span>MEDAL TARGET<b id="endTarget">—</b></span>
+  </div>
+  <div id="shareCard">
+    <pre id="shareText"></pre>
+    <div id="shareSub"></div>
+    <div id="shareBtns">
+      <button class="bigBtn" id="shareCopyBtn">COPY SHARE CARD</button>
+      <button class="bigBtn" id="shareGhostBtn">COPY “BEAT MY LAP” LINK</button>
+    </div>
+  </div>
+  <div class="restart">PRESS <b style="color:var(--acc-hi)">R</b> TO RESTART</div>
+</div>
+
+</body>
+</html>
