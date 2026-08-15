@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mozilla+Headline:wght@200..700&display=swap">
-  <script type="module" crossorigin src="./assets/index-C1q3vbl-.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-CSo8RGMy.css">
+  <script type="module" crossorigin src="./assets/index-Bs9bw839.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DgZG8tbz.css">
 </head>
 <body>
 <!-- Ships visible; main.js fades it once the menu has painted.  Choosing a circuit reloads
@@ -89,7 +89,7 @@
   <div id="replayTag">REPLAY</div>
   <div id="replayTitle">OVERTAKE — LAP 2</div>
   <div id="replayDots"></div>
-  <div id="replayHint">SPACE SKIP · ESC EXIT</div>
+  <div id="replayHint">SPACE SKIP · C CAMERA · H HUD · ESC EXIT</div>
 </div>
 <!-- Same slanted list as the start menu, and driven by the same keys — the rows are plain
      .navItem markup rather than React because src/menu/ only renders while the menu is up,
@@ -132,13 +132,15 @@
        START RACE was pressed — the room online, the daily / career / quick panel offline —
        and loop/keys.js returnToLobby() picks which.  RESTART RACE is offline only: in a
        room, going again is the room's decision and restarting alone would strand everyone
-       else (sim/results.js hides it).  REPLAY HIGHLIGHTS is up whenever a reel was cut. -->
+       else (sim/results.js hides it).  REPLAY HIGHLIGHTS and SAVE REPLAY are up whenever the
+       race left enough recording to cut — the file goes back in through SETTINGS. -->
   <div id="endBtns">
     <!-- The label is wrapped so it can be counter-skewed out of the row's shear, the same
          way .navItem>span is on the menu. -->
     <button class="bigBtn" id="endBackBtn"><span>BACK TO LOBBY</span></button>
     <button class="bigBtn" id="endRestartBtn"><span>RESTART RACE</span></button>
     <button class="bigBtn" id="endReplayBtn"><span>REPLAY HIGHLIGHTS</span></button>
+    <button class="bigBtn" id="endSaveBtn"><span>SAVE REPLAY</span></button>
   </div>
   <div class="restart">PRESS <b style="color:var(--acc-hi)">R</b> TO RESTART</div>
 </div>
