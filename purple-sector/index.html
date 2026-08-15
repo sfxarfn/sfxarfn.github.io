@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mozilla+Headline:wght@200..700&display=swap">
-  <script type="module" crossorigin src="./assets/index-CYf6rXMX.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BUqTjWaw.css">
+  <script type="module" crossorigin src="./assets/index-C1q3vbl-.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CSo8RGMy.css">
 </head>
 <body>
 <!-- Ships visible; main.js fades it once the menu has painted.  Choosing a circuit reloads
@@ -82,6 +82,15 @@
 <div id="hints"><b>W/↑</b> throttle&nbsp; <b>S/↓</b> brake&nbsp; <b>A·D/←→</b> steer&nbsp; <b>SHIFT</b> DRS&nbsp; <b>E</b> overtake&nbsp; <b>SPACE</b> handbrake&nbsp; <b>C</b> cameras&nbsp; <b>Q·E</b> look (chase cam)&nbsp; <b>T</b> assists&nbsp; <b>L</b> line&nbsp; <b>G</b> ghost&nbsp; <b>F</b> fps/diag&nbsp; <b>P</b> pit&nbsp; <b>1·2·3</b> tyres&nbsp; <b>M</b> mute&nbsp; <b>R</b> restart</div>
 <div id="tunnelShade"></div>
 <div id="ultraTag">ULTRA LITE VISUAL MODE</div>
+<!-- Replay reel overlay.  The race HUD is hidden while this is up (hud/update.js), so this
+     is the ONLY readout during a highlight — what the clip is, where it sits in the reel,
+     and the two keys off it. -->
+<div id="replayBar">
+  <div id="replayTag">REPLAY</div>
+  <div id="replayTitle">OVERTAKE — LAP 2</div>
+  <div id="replayDots"></div>
+  <div id="replayHint">SPACE SKIP · ESC EXIT</div>
+</div>
 <!-- Same slanted list as the start menu, and driven by the same keys — the rows are plain
      .navItem markup rather than React because src/menu/ only renders while the menu is up,
      and this is the one list that exists mid-race. -->
@@ -119,16 +128,17 @@
       <button class="bigBtn" id="shareGhostBtn">COPY “BEAT MY LAP” LINK</button>
     </div>
   </div>
-  <!-- The way off this screen, and only ever two rows (sim/results.js picks which):
-       in a room, BACK TO LOBBY alone — it keeps the connections up so the same drivers can
-       go again, and restarting on your own would strand them.  Offline, BACK TO MAIN MENU
-       and RESTART RACE. -->
+  <!-- The way off this screen.  BACK TO LOBBY is always the first row: "lobby" is wherever
+       START RACE was pressed — the room online, the daily / career / quick panel offline —
+       and loop/keys.js returnToLobby() picks which.  RESTART RACE is offline only: in a
+       room, going again is the room's decision and restarting alone would strand everyone
+       else (sim/results.js hides it).  REPLAY HIGHLIGHTS is up whenever a reel was cut. -->
   <div id="endBtns">
     <!-- The label is wrapped so it can be counter-skewed out of the row's shear, the same
          way .navItem>span is on the menu. -->
-    <button class="bigBtn" id="endLobbyBtn" style="display:none"><span>BACK TO LOBBY</span></button>
-    <button class="bigBtn" id="endMenuBtn"><span>BACK TO MAIN MENU</span></button>
+    <button class="bigBtn" id="endBackBtn"><span>BACK TO LOBBY</span></button>
     <button class="bigBtn" id="endRestartBtn"><span>RESTART RACE</span></button>
+    <button class="bigBtn" id="endReplayBtn"><span>REPLAY HIGHLIGHTS</span></button>
   </div>
   <div class="restart">PRESS <b style="color:var(--acc-hi)">R</b> TO RESTART</div>
 </div>
