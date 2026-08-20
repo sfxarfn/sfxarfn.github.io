@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mozilla+Headline:wght@200..700&display=swap">
-  <script type="module" crossorigin src="./assets/index-BXhgFAil.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-CbZUyXbC.css">
+  <script type="module" crossorigin src="./assets/index-cYjylhXk.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-PMQdmK0W.css">
 </head>
 <body>
 <!-- Ships visible; main.js fades it once the menu has painted.  Choosing a circuit reloads
@@ -65,6 +65,39 @@
   <div id="mapPanel" class="panel"><canvas id="minimap" width="136" height="148"></canvas></div>
 </div>
 <canvas id="speedo" width="260" height="260"></canvas>
+<!-- CAR SYSTEMS — brake bias and the ERS mode, docked in the band left of the dial.
+     SHUT by default: what stands there while it is closed is the two chips below, and B
+     opens the panel.  Behaviour and the deploy strip's bars are in src/hud/carSystems.js;
+     the bars are the only part of this the page does not ship, because there are 26 of
+     them and the count belongs to that file. -->
+<div id="carSysDock">
+  <span class="dockChip"><s>BIAS</s><b id="biasChip">57</b><s>F</s></span>
+  <span class="dockChip"><s>ERS</s><b id="ersChip">BAL</b></span>
+</div>
+<div id="carSysPanel">
+  <div class="wHead"><span>CAR SYSTEMS</span><span>B &middot; CLOSE</span></div>
+  <div class="secHead"><span>BRAKE BIAS</span><b>[ / ]</b></div>
+  <div class="beamTop">
+    <span class="f"><u>FRONT</u><b id="biasFront">57</b></span>
+    <span class="r"><b id="biasRear">43</b><u>REAR</u></span>
+  </div>
+  <div class="beam">
+    <div class="fill" id="biasFill"></div>
+    <span class="tk"></span><span class="tk"></span><span class="tk"></span><span class="tk"></span><span class="tk"></span><span class="tk"></span><span class="tk"></span><span class="tk"></span><span class="tk"></span><span class="tk"></span>
+    <div class="knob" id="biasKnob"></div><div class="home" id="biasHome"></div>
+  </div>
+  <div class="beamScale"><span>52 &#9664; MORE REAR</span><span>DEFAULT</span><span>MORE FRONT &#9654; 62</span></div>
+  <div class="wSep"></div>
+  <div class="secHead"><span>ERS MODE</span><b>B</b></div>
+  <div class="rotary">
+    <div class="trk"></div><div class="lit" id="ersLit"></div>
+    <div class="st" style="left:8%"></div><div class="st" style="left:50%"></div><div class="st" style="left:92%"></div>
+    <u style="left:8%">RECOVERY</u><u style="left:50%">BALANCED</u><u style="left:92%">ATTACK</u>
+  </div>
+  <div class="planHead"><span>DEPLOY PLAN &middot; THIS LAP</span><b id="ersStore">STORE 0%</b></div>
+  <div class="plan" id="deployPlan"><i id="planHere"></i></div>
+  <div class="planKey"><span class="k1">DEPLOY</span><span class="k2">HOLD</span><span class="k3">HARVEST</span></div>
+</div>
 <canvas id="dashCluster" width="1180" height="300"></canvas>
 <div id="sectorToast"></div>
 <div id="slipTag">SLIPSTREAM</div>
@@ -79,7 +112,7 @@
 <div id="cockpitShade"></div>
 <div id="msg"></div>
 <div id="subMsg"></div>
-<div id="hints"><b>W/↑</b> throttle&nbsp; <b>S/↓</b> brake&nbsp; <b>A·D/←→</b> steer&nbsp; <b>SHIFT</b> DRS&nbsp; <b>E</b> overtake&nbsp; <b>SPACE</b> handbrake&nbsp; <b>C</b> cameras&nbsp; <b>Q·E</b> look (chase cam)&nbsp; <b>T</b> assists&nbsp; <b>L</b> line&nbsp; <b>G</b> ghost&nbsp; <b>F</b> fps/diag&nbsp; <b>P</b> pit&nbsp; <b>1·2·3</b> tyres&nbsp; <b>M</b> mute&nbsp; <b>R</b> restart</div>
+<div id="hints"><b>W/↑</b> throttle&nbsp; <b>S/↓</b> brake&nbsp; <b>A·D/←→</b> steer&nbsp; <b>SHIFT</b> DRS&nbsp; <b>E</b> overtake&nbsp; <b>SPACE</b> handbrake&nbsp; <b>C</b> cameras&nbsp; <b>Q·E</b> look (chase cam)&nbsp; <b>T</b> assists&nbsp; <b>L</b> line&nbsp; <b>G</b> ghost&nbsp; <b>F</b> fps/diag&nbsp; <b>P</b> pit&nbsp; <b>1·2·3</b> tyres&nbsp; <b>B</b> car systems&nbsp; <b>[·]</b> brake bias&nbsp; <b>M</b> mute&nbsp; <b>R</b> restart</div>
 <div id="tunnelShade"></div>
 <div id="ultraTag">ULTRA LITE VISUAL MODE</div>
 <!-- Replay reel overlay.  The race HUD is hidden while this is up (hud/update.js), so this
