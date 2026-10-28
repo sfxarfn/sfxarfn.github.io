@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#08090C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>deckhand</title>
+<style>
+:root {
+  --bg: #08090C; --tile: #0F1117; --raised: #12141A; --raised2: #1B1D26;
+  --text: #D6D8E2; --muted: #A4A7B5; --dim: #6B6E7C;
+  --accent: #9D86E0; --ok: #4EAF6B; --warn: #D9A03A; --bad: #D95F5F;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
+body {
+  font: 14px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+}
+button { font: inherit; color: inherit; }
+
+#bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; flex: none; }
+#mac {
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+  background: var(--raised); border: 0; cursor: pointer; max-width: 40%;
+}
+#mac .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+.dot.ok { background: var(--ok); }
+#tabs { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: var(--raised); margin: 0 auto; }
+#tabs button { border: 0; background: none; padding: 6px 16px; border-radius: 999px; color: var(--muted); cursor: pointer; }
+#tabs button[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 24%, var(--tile)); color: var(--text); }
+#meta { color: var(--dim); font-size: 12px; text-align: right; min-width: 60px; white-space: nowrap; }
+
+#view { flex: 1; overflow: auto; padding: 4px 12px 16px; -webkit-overflow-scrolling: touch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.empty { color: var(--dim); text-align: center; padding: 48px 0; }
+
+.tile {
+  position: relative; display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-height: 62px;
+  border-radius: 16px; background: var(--tile); border: 1px solid transparent; cursor: pointer;
+  transition: transform .08s, background .12s; outline: none;
+}
+.tile:active { transform: scale(.95); background: var(--raised2); }
+.tile:focus-visible { border-color: var(--muted); }
+.tile.front { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--tile)); }
+.tile.dim .icon, .tile.dim .txt { opacity: .55; }
+.icon { width: 40px; height: 40px; border-radius: 10px; flex: none; object-fit: contain; }
+.icon.ph {
+  display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--muted);
+  background: var(--raised2);
+}
+.txt { min-width: 0; flex: 1; }
+.ttl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { color: var(--dim); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.state { position: absolute; top: 9px; right: 11px; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--dim); }
+.state.visible { background: var(--ok); border-color: var(--ok); }
+.state.hidden { background: var(--dim); border-color: var(--dim); }
+.more {
+  position: absolute; bottom: 2px; right: 4px; border: 0; background: none; color: var(--dim);
+  padding: 2px 8px; font-size: 18px; line-height: 1; cursor: pointer;
+}
+
+.cols { display: flex; gap: 12px; align-items: flex-start; min-height: 100%; }
+.col { flex: 1 0 230px; display: flex; flex-direction: column; gap: 8px; }
+.colhead { display: flex; justify-content: space-between; color: var(--muted); padding: 2px 4px 4px; }
+.colhead .count { color: var(--dim); font-size: 12px; }
+.stack { display: flex; margin-right: 4px; flex: none; }
+.stack .icon { width: 32px; height: 32px; border-radius: 8px; margin-right: -8px; box-shadow: 0 0 0 2px var(--tile); }
+.tile.showing { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--tile)); }
+.tag { color: var(--accent); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+
+.snap { display: flex; flex-direction: column; gap: 14px; }
+.front-card {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px;
+  background: var(--tile); border-radius: 16px;
+}
+.front-card .txt { flex: 1 1 200px; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  border: 0; border-radius: 12px; padding: 9px 14px; background: var(--raised2); color: var(--text); cursor: pointer;
+}
+.btn:active { transform: scale(.95); }
+.btn.primary { background: var(--accent); color: #0B0B10; font-weight: 600; }
+.sections { display: flex; flex-wrap: wrap; gap: 14px 22px; }
+.section h3 { margin: 0 0 6px 2px; font-size: 12px; font-weight: 500; color: var(--dim); letter-spacing: .05em; text-transform: uppercase; }
+.layouts { display: grid; grid-template-columns: repeat(auto-fill, 92px); gap: 8px; }
+.layout {
+  border: 1px solid transparent; background: var(--tile); border-radius: 14px; padding: 8px 6px 7px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); font-size: 12px;
+}
+.layout:active { transform: scale(.94); background: var(--raised2); }
+.layout.current { border-color: var(--accent); color: var(--text); }
+.glyph { position: relative; width: 56px; height: 35px; border: 1.5px solid var(--dim); border-radius: 5px; overflow: hidden; }
+.glyph i { position: absolute; background: var(--accent); opacity: .85; border-radius: 2px; }
+
+#gate {
+  position: fixed; inset: 0; z-index: 10; background: rgba(8, 9, 12, .94); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center;
+}
+#gate h1 { margin: 0; font-size: 20px; font-weight: 600; }
+#gate p { margin: 0; color: var(--muted); max-width: 34em; }
+#gate .note { color: var(--warn); }
+#gate input {
+  font: inherit; color: var(--text); background: var(--raised2); border: 0; border-radius: 12px; padding: 11px 14px;
+  width: min(320px, 100%); text-align: center; -webkit-user-select: text; user-select: text;
+}
+#gate a { color: var(--accent); }
+#gate .code { font-size: 44px; font-weight: 600; letter-spacing: .12em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--raised2); border-top-color: var(--accent); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#sheet { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.card { background: var(--raised); border-radius: 20px; padding: 8px; width: min(340px, 100%); max-height: 100%; overflow: auto; }
+.card .head { padding: 10px 12px 8px; }
+.card .head .ttl { font-weight: 600; }
+.card button {
+  display: block; width: 100%; text-align: left; border: 0; background: none; padding: 13px 12px;
+  border-radius: 12px; cursor: pointer;
+}
+.card button:active { background: var(--raised2); }
+.card button.danger { color: var(--bad); }
+
+#toast {
+  position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30;
+  background: var(--raised2); color: var(--text); padding: 10px 16px; border-radius: 12px; max-width: 90%; text-align: center;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .5);
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  #bar { padding: 4px 10px; }
+  #tabs button { padding: 4px 14px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+  .tile { min-height: 56px; }
+}
+</style>
+</head>
+<body>
+<header id="bar">
+  <button id="mac" type="button"><span class="dot" id="dot"></span><span class="name" id="macName">deckhand</span></button>
+  <nav id="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="apps">Apps</button>
+    <button type="button" role="tab" data-tab="stages">Stages</button>
+    <button type="button" role="tab" data-tab="snap">Snap</button>
+  </nav>
+  <div id="meta"></div>
+</header>
+<main id="view"></main>
+<div id="gate"></div>
+<div id="sheet" hidden></div>
+<div id="toast" hidden role="status" aria-live="polite"></div>
+<script>
+(() => {
+'use strict';
+
+const TOKEN_KEY = 'deckhand.token';
+const TAB_KEY = 'deckhand.tab';
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* private mode */ } },
+};
+
+// Builds elements without innerHTML: window titles come from the Mac and are never parsed as markup.
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'on') for (const [ev, fn] of Object.entries(v)) el.addEventListener(ev, fn);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : String(kid));
+  return el;
+}
+
+// Served by the agent: talk to the same host. Published elsewhere (GitHub Pages, or ?agent=): talk to the
+// Mac whose address is given, default port 8766.
+const params = new URLSearchParams(location.search);
+const REMOTE = /\.github\.io$/.test(location.hostname) || params.has('agent');
+const AGENT_KEY = 'deckhand.agent';
+function cleanAddr(v) {
+  v = String(v || '').trim().replace(/^[a-z]+:\/\//i, '').replace(/[\/?#].*$/, '');
+  if (!/^[A-Za-z0-9.-]{1,253}(:\d{1,5})?$/.test(v)) return '';
+  return v.includes(':') ? v : v + ':8766';
+}
+let agentAddr = REMOTE ? (cleanAddr(params.get('agent')) || cleanAddr(store.get(AGENT_KEY))) : location.host;
+// One token per Mac, so a pairing is never offered to another address.
+const tokenKey = () => (REMOTE ? TOKEN_KEY + '@' + agentAddr : TOKEN_KEY);
+const installUrl = () => (REMOTE ? 'https://' + agentAddr : '') + '/install';
+
+const S = {
+  conn: 'connecting', // connecting | reconnecting | address | unpaired | pairing | ready
+  unreachable: false,
+  note: '', code: '', mac: '',
+  front: null, apps: [], displays: [], stages: [], status: null,
+  tab: ['apps', 'stages', 'snap'].includes(store.get(TAB_KEY)) ? store.get(TAB_KEY) : 'apps',
+};
+
+const buzz = () => { try { navigator.vibrate && navigator.vibrate(8); } catch (e) { /* not supported */ } };
+
+let toastTimer = 0;
+function toast(text) {
+  const el = $('toast');
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 3500);
+}
+
+// ---------- connection ----------
+
+let ws = null;
+let retry = 0;
+let retryTimer = 0;
+const pending = new Map();
+
+function uid() {
+  return (crypto.randomUUID && crypto.randomUUID()) || (Date.now().toString(36) + Math.random().toString(36).slice(2));
+}
+function nonce() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+function deviceName() {
+  const ua = navigator.userAgent;
+  const device = /iPhone/.test(ua) ? 'iPhone'
+    : (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) ? 'iPad'
+    : /Android/.test(ua) ? (/Mobile/.test(ua) ? 'Android phone' : 'Android tablet')
+    : /Macintosh/.test(ua) ? 'Mac browser' : /Windows/.test(ua) ? 'Windows PC' : 'Browser';
+  const browser = /Edg\//.test(ua) ? 'Edge' : /(CriOS|Chrome)\//.test(ua) ? 'Chrome'
+    : /(FxiOS|Firefox)\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'web';
+  return (device + ' (' + browser + ')').slice(0, 40);
+}
+
+function rpc(type, fields, timeout) {
+  return new Promise((resolve, reject) => {
+    if (!ws || ws.readyState !== 1) { reject(new Error('Not connected')); return; }
+    const id = uid();
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      reject(Object.assign(new Error('The Mac did not answer'), { timeout: true }));
+    }, timeout || 10000);
+    pending.set(id, { resolve, reject, timer });
+    ws.send(JSON.stringify(Object.assign({ id, type }, fields)));
+  });
+}
+function failPending(err) {
+  for (const p of pending.values()) { clearTimeout(p.timer); p.reject(err); }
+  pending.clear();
+}
+
+function setConn(conn, note) {
+  S.conn = conn;
+  S.note = note || '';
+  renderGate();
+  renderAll();
+}
+
+function connect(pair) {
+  clearTimeout(retryTimer);
+  if (ws) {
+    const old = ws;
+    ws = null;
+    old.onopen = old.onmessage = old.onclose = null;
+    try { old.close(); } catch (e) { /* already closed */ }
+    failPending(new Error('Connection lost'));
+  }
+  if (!agentAddr) { setConn('address'); return; }
+  const token = store.get(tokenKey());
+  if (!pair && !token) { setConn('unpaired'); return; }
+  S.code = '';
+  setConn(pair ? 'pairing' : (S.conn === 'ready' || S.conn === 'reconnecting' ? 'reconnecting' : 'connecting'));
+
+  let opened = false;
+  const sock = new WebSocket('wss://' + agentAddr + '/ws');
+  ws = sock;
+  sock.onopen = () => {
+    opened = true;
+    const hello = pair
+      ? { pair: true, nonce: nonce(), deviceName: deviceName() }
+      : { token, deviceName: deviceName() };
+    rpc('hello', hello, pair ? 75000 : 15000).then((reply) => {
+      if (ws !== sock) return;
+      if (reply.token) store.set(tokenKey(), reply.token);
+      if (REMOTE) store.set(AGENT_KEY, agentAddr);
+      S.unreachable = false;
+      S.mac = reply.agentName || 'Mac';
+      retry = 0;
+      resetIcons();
+      setConn('ready');
+    }).catch((err) => {
+      if (ws !== sock) return;
+      if (err.code === 'invalid_token') store.del(tokenKey());
+      // The Mac closes after a rejection; a bare error (paused, no answer) lets onclose retry.
+      if (err.code) setConn('unpaired', err.message);
+      else { S.note = err.message; renderGate(); }
+    });
+  };
+  sock.onmessage = (event) => {
+    let msg;
+    try { msg = JSON.parse(event.data); } catch (e) { return; }
+    if (msg.id && pending.has(msg.id)) {
+      const p = pending.get(msg.id);
+      pending.delete(msg.id);
+      clearTimeout(p.timer);
+      if (msg.ok) p.resolve(msg);
+      else p.reject(Object.assign(new Error(msg.error || 'Failed'), { code: msg.code }));
+    } else if (msg.type) {
+      onPush(msg);
+    }
+  };
+  sock.onclose = () => {
+    if (ws !== sock) return;
+    ws = null;
+    failPending(new Error('Connection lost'));
+    // Never opened: unreachable, or the device doesn't trust the Mac's certificate yet.
+    if (!opened) S.unreachable = true;
+    if (S.conn === 'pairing') setConn('unpaired', S.note || 'Lost the connection. Try again.');
+    else if (S.conn !== 'unpaired') {
+      setConn('reconnecting', S.note);
+      retry += 1;
+      retryTimer = setTimeout(() => connect(false), Math.min(400 * 2 ** retry, 8000));
+    }
+  };
+}
+
+function onPush(msg) {
+  switch (msg.type) {
+    case 'pair.pending': S.code = String(msg.code || ''); renderGate(); break;
+    case 'window.changed': S.front = msg.window || null; break;
+    case 'apps.changed': S.apps = msg.apps || []; S.displays = msg.displays || []; break;
+    case 'stages.changed': S.stages = msg.stages || []; break;
+    case 'mac.status': S.status = msg.status || null; break;
+    default: return;
+  }
+  scheduleRender();
+}
+
+// Phones freeze sockets in the background: when the page comes back, check the link is alive.
+function wake() {
+  if (document.hidden || S.conn === 'pairing' || S.conn === 'unpaired') return;
+  if (S.conn !== 'ready' || !ws || ws.readyState !== 1) { connect(false); return; }
+  rpc('ping', {}, 3000).catch((err) => { if (err.timeout) connect(false); });
+}
+document.addEventListener('visibilitychange', wake);
+window.addEventListener('pageshow', wake);
+window.addEventListener('online', wake);
+
+// ---------- icons ----------
+
+const icons = new Map(); // bundleId -> data URL, or null while loading or failed
+const iconQueue = [];
+let iconActive = 0;
+let iconsLoaded = 0;
+
+function resetIcons() {
+  for (const [id, url] of Array.from(icons)) if (!url) icons.delete(id);
+  iconQueue.length = 0;
+  iconActive = 0;
+}
+function wantIcon(bundleId) {
+  if (!bundleId || icons.has(bundleId)) return;
+  icons.set(bundleId, null);
+  iconQueue.push(bundleId);
+  pumpIcons();
+}
+function pumpIcons() {
+  while (iconActive < 3 && iconQueue.length && S.conn === 'ready') {
+    const id = iconQueue.shift();
+    iconActive += 1;
+    rpc('app.icon', { bundleId: id }).then((reply) => {
+      icons.set(id, 'data:image/png;base64,' + reply.png);
+      iconsLoaded += 1;
+      scheduleRender();
+    }).catch(() => { /* keeps the letter placeholder */ }).finally(() => {
+      iconActive = Math.max(0, iconActive - 1);
+      pumpIcons();
+    });
+  }
+}
+function iconEl(bundleId, name, cls) {
+  wantIcon(bundleId);
+  const url = icons.get(bundleId);
+  if (url) return h('img', { class: 'icon' + (cls ? ' ' + cls : ''), src: url, alt: '', draggable: 'false' });
+  return h('div', { class: 'icon ph' }, (name || '?').trim().charAt(0).toUpperCase());
+}
+
+// ---------- actions ----------
+
+function act(type, fields) {
+  buzz();
+  rpc(type, fields).catch((err) => toast(err.message));
+}
+const NO_FRAME = { x: 0, y: 0, w: 0, h: 0 };
+const focusWindow = (bundleId, windowId) => act('window.focus', { bundleId, windowId, frame: NO_FRAME });
+
+function pressable(el, onTap, onMenu) {
+  let timer = 0, sx = 0, sy = 0, fired = false;
+  const clear = () => { clearTimeout(timer); timer = 0; };
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button > 0) return;
+    fired = false; sx = e.clientX; sy = e.clientY;
+    clear();
+    timer = setTimeout(() => { fired = true; buzz(); onMenu(); }, 450);
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) clear();
+  });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) el.addEventListener(ev, clear);
+  el.addEventListener('click', () => { if (fired) { fired = false; return; } onTap(); });
+  el.addEventListener('contextmenu', (e) => { e.preventDefault(); if (!sheetOpenedAt) onMenu(); });
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTap(); } });
+}
+
+let sheetOpenedAt = 0;
+function closeSheet() { $('sheet').hidden = true; sheetOpenedAt = 0; }
+function openSheet(title, sub, actions) {
+  const sheet = $('sheet');
+  sheetOpenedAt = Date.now();
+  sheet.replaceChildren(h('div', { class: 'card', role: 'menu' },
+    h('div', { class: 'head' }, h('div', { class: 'ttl' }, title), sub ? h('div', { class: 'sub' }, sub) : null),
+    actions.filter(Boolean).map((a) => h('button', {
+      type: 'button', role: 'menuitem', class: a.danger ? 'danger' : '',
+      on: { click: () => { closeSheet(); a.run(); } },
+    }, a.label)),
+    h('button', { type: 'button', on: { click: closeSheet } }, 'Cancel')));
+  sheet.hidden = false;
+}
+$('sheet').addEventListener('click', (e) => {
+  // The finger that opened the sheet is still lifting.
+  if (e.target === $('sheet') && Date.now() - sheetOpenedAt > 300) closeSheet();
+});
+
+function quitActions(app) {
+  return app.bundleId === 'com.apple.finder'
+    ? [{ label: 'Close all Finder windows', danger: true, run: () => act('app.closeAll', { bundleId: app.bundleId }) }]
+    : [{ label: 'Quit ' + app.name, danger: true, run: () => act('app.quit', { bundleId: app.bundleId }) }];
+}
+function moveActions(fields, currentName) {
+  return S.displays.filter((d) => d.name !== currentName)
+    .map((d) => ({ label: 'Move to ' + d.name, run: () => act('stage.move', Object.assign({ to: d.id }, fields)) }));
+}
+
+// ---------- views ----------
+
+function appName(bundleId) {
+  const app = S.apps.find((a) => a.bundleId === bundleId);
+  return app ? app.name : bundleId.split('.').pop();
+}
+
+function tile(o) {
+  const el = h('div', {
+    class: 'tile' + (o.front ? ' front' : '') + (o.showing ? ' showing' : '') + (o.state === 'hidden' || o.state === 'none' ? ' dim' : ''),
+    role: 'button', tabindex: '0',
+  },
+    o.icon,
+    h('div', { class: 'txt' },
+      h('div', { class: 'ttl' }, o.title),
+      h('div', { class: 'sub' }, o.sub)),
+    o.state ? h('span', { class: 'state ' + o.state }) : null,
+    h('button', { class: 'more', type: 'button', 'aria-label': 'More', on: { click: (e) => { e.stopPropagation(); o.onMenu(); } } }, '⋯'));
+  pressable(el, o.onTap, o.onMenu);
+  return el;
+}
+
+function empty(text) { return h('div', { class: 'empty' }, text); }
+
+function windowTile(app, w) {
+  const isFront = !!S.front && S.front.windowId === w.windowId;
+  const multi = S.displays.length > 1;
+  const onMenu = () => openSheet(w.private ? 'Private window' : (w.title || app.name), app.name, [
+    { label: 'Show window', run: () => focusWindow(app.bundleId, w.windowId) },
+    ...moveActions({ bundleId: app.bundleId, windowId: w.windowId }, w.screen),
+    { label: 'Close window', danger: true, run: () => act('window.close', { bundleId: app.bundleId, windowId: w.windowId }) },
+    ...quitActions(app),
+  ]);
+  return tile({
+    icon: iconEl(app.bundleId, app.name),
+    title: w.private ? 'Private window' : (w.title || app.name),
+    sub: [app.name, multi ? w.screen : null].filter(Boolean).join(' · '),
+    state: w.state, front: isFront,
+    onTap: () => focusWindow(app.bundleId, w.windowId), onMenu,
+  });
+}
+
+function appTile(app) {
+  return tile({
+    icon: iconEl(app.bundleId, app.name),
+    title: app.name, sub: 'No windows · tap to open',
+    state: 'none', front: !!S.front && S.front.bundleId === app.bundleId,
+    onTap: () => act('app.launch', { bundleId: app.bundleId }),
+    onMenu: () => openSheet(app.name, 'No windows open', [
+      { label: 'Open ' + app.name, run: () => act('app.launch', { bundleId: app.bundleId }) },
+      ...quitActions(app),
+    ]),
+  });
+}
+
+function viewApps() {
+  const tiles = [];
+  for (const app of S.apps) {
+    const list = app.windowList || [];
+    if (!list.length) tiles.push(appTile(app));
+    else for (const w of list) tiles.push(windowTile(app, w));
+  }
+  return tiles.length ? h('div', { class: 'grid' }, tiles) : empty('No apps running');
+}
+
+function soloTile(d, w) {
+  const name = w.private ? 'Private window' : (w.title || w.app);
+  return tile({
+    icon: iconEl(w.bundleId, w.app), title: name, sub: w.app, showing: w.showing,
+    onTap: () => focusWindow(w.bundleId, w.windowId),
+    onMenu: () => openSheet(name, w.app, [
+      { label: 'Show', run: () => focusWindow(w.bundleId, w.windowId) },
+      ...moveActions({ bundleId: w.bundleId, windowId: w.windowId }, d.name),
+    ]),
+  });
+}
+
+function groupTile(d, g) {
+  const names = g.members.map((m) => appName(m.bundleId));
+  return tile({
+    icon: h('div', { class: 'stack' }, g.members.slice(0, 3).map((m) => iconEl(m.bundleId, appName(m.bundleId)))),
+    title: names.join(' + '), sub: g.members.length + ' windows' + (g.showing ? ' · showing' : ''),
+    showing: g.showing,
+    onTap: () => act('stage.show', { id: g.id }),
+    onMenu: () => openSheet(names.join(' + '), 'Stage', [
+      { label: 'Show stage', run: () => act('stage.show', { id: g.id }) },
+      ...moveActions({ groupId: g.id }, d.name),
+    ]),
+  });
+}
+
+function viewStages() {
+  if (!S.displays.length) return empty('No displays reported yet');
+  const known = new Set(S.displays.map((d) => d.name));
+  const columns = S.displays.map((d) => ({ d, groups: S.stages.filter((g) => g.screenName === d.name) }));
+  const orphans = S.stages.filter((g) => !g.screenName || !known.has(g.screenName));
+  if (orphans.length) columns.push({ d: { name: 'Other', windows: [], windowCount: 0, id: '' }, groups: orphans });
+  return h('div', { class: 'cols' }, columns.map(({ d, groups }) => {
+    const cards = [...groups.map((g) => groupTile(d, g)), ...(d.windows || []).map((w) => soloTile(d, w))];
+    return h('section', { class: 'col' },
+      h('div', { class: 'colhead' }, h('span', null, d.name), h('span', { class: 'count' }, d.windowCount + ' open')),
+      cards.length ? cards : empty('No stages'));
+  }));
+}
+
+const LAYOUTS = [
+  ['Halves', [['left', 'Left', 0, 0, .5, 1], ['right', 'Right', .5, 0, .5, 1], ['top', 'Top', 0, 0, 1, .5], ['bottom', 'Bottom', 0, .5, 1, .5]]],
+  ['Quarters', [['topLeft', 'Top left', 0, 0, .5, .5], ['topRight', 'Top right', .5, 0, .5, .5], ['bottomLeft', 'Bottom left', 0, .5, .5, .5], ['bottomRight', 'Bottom right', .5, .5, .5, .5]]],
+  ['Thirds', [['leftThird', 'Left ⅓', 0, 0, 1 / 3, 1], ['centerThird', 'Center ⅓', 1 / 3, 0, 1 / 3, 1], ['rightThird', 'Right ⅓', 2 / 3, 0, 1 / 3, 1], ['leftTwoThirds', 'Left ⅔', 0, 0, 2 / 3, 1], ['rightTwoThirds', 'Right ⅔', 1 / 3, 0, 2 / 3, 1]]],
+  ['Other', [['maximize', 'Maximize', 0, 0, 1, 1], ['center', 'Center', .2, .2, .6, .6]]],
+];
+
+function viewSnap() {
+  const f = S.front;
+  const info = f
+    ? h('div', { class: 'txt' },
+        h('div', { class: 'tag' }, 'Front window'),
+        h('div', { class: 'ttl' }, f.app + (f.title ? ' — ' + f.title : '')),
+        h('div', { class: 'sub' }, f.trusted === false ? 'Accessibility is off for deckhand on the Mac' : (f.screenName || '')))
+    : h('div', { class: 'txt' }, h('div', { class: 'ttl' }, 'No front window'));
+  const buttons = h('div', { class: 'btns' },
+    f && f.nextScreenName ? h('button', { class: 'btn', type: 'button', on: { click: () => act('window.nextScreen', { scope: 'window' }) } }, 'Window → ' + f.nextScreenName) : null,
+    f && f.nextScreenName ? h('button', { class: 'btn', type: 'button', on: { click: () => act('window.nextScreen', { scope: 'stage' }) } }, 'Stage → ' + f.nextScreenName) : null,
+    h('button', { class: 'btn', type: 'button', on: { click: () => act('window.minimize', {}) } }, 'Minimize'));
+  return h('div', { class: 'snap' },
+    h('div', { class: 'front-card' }, f ? iconEl(f.bundleId, f.app) : null, info, buttons),
+    h('div', { class: 'sections' }, LAYOUTS.map(([title, items]) =>
+      h('div', { class: 'section' }, h('h3', null, title),
+        h('div', { class: 'layouts' }, items.map(([wire, label, x, y, w, hh]) => {
+          const el = h('button', { class: 'layout' + (f && f.layout === wire ? ' current' : ''), type: 'button' },
+            h('div', { class: 'glyph' }, h('i', { style: 'left:' + x * 100 + '%;top:' + y * 100 + '%;width:' + w * 100 + '%;height:' + hh * 100 + '%' })),
+            label);
+          el.addEventListener('click', () => act('window.tile', { layout: wire }));
+          return el;
+        }))))));
+}
+
+// ---------- render ----------
+
+let lastSig = '';
+let renderQueued = false;
+function scheduleRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => { renderQueued = false; renderAll(); });
+}
+
+function renderAll() {
+  $('dot').className = 'dot' + (S.conn === 'ready' ? ' ok' : '');
+  $('macName').textContent = S.mac || 'deckhand';
+  for (const b of document.querySelectorAll('#tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === S.tab));
+  const st = S.status;
+  $('meta').textContent = st && st.battery != null ? st.battery + '%' + (st.charging ? ' ⚡' : '') : '';
+
+  const front = S.front && [S.front.windowId, S.front.bundleId, S.front.layout, S.front.title, S.front.screenName, S.front.nextScreenName, S.front.trusted];
+  const sig = JSON.stringify([S.tab, S.conn === 'ready', iconsLoaded, S.displays.length,
+    S.tab === 'apps' ? [S.apps, front && front.slice(0, 2)] : S.tab === 'stages' ? [S.displays, S.stages, S.apps.map((a) => a.name)] : [S.front]]);
+  if (sig === lastSig) return;
+  lastSig = sig;
+  const view = $('view');
+  const scroll = view.scrollTop;
+  view.replaceChildren(S.tab === 'apps' ? viewApps() : S.tab === 'stages' ? viewStages() : viewSnap());
+  view.scrollTop = scroll;
+}
+
+function renderGate() {
+  const gate = $('gate');
+  if (S.conn === 'ready') { gate.hidden = true; return; }
+  gate.hidden = false;
+  const note = [
+    S.note ? h('p', { class: 'note' }, S.note) : null,
+    S.unreachable ? h('p', null, 'Can\u2019t reach the Mac at ' + agentAddr + '. Check it is on the same Wi-Fi and deckhand is running. '
+      + 'If this device doesn\u2019t trust the Mac\u2019s certificate yet, ',
+      h('a', { href: installUrl() }, 'install it first'), '.') : null,
+  ];
+  if (S.conn === 'address') {
+    const input = h('input', { id: 'addr', type: 'text', placeholder: '192.168.1.20:8766', autocapitalize: 'off', autocomplete: 'off', autocorrect: 'off', spellcheck: 'false', inputmode: 'url', value: '' });
+    const go = () => {
+      const addr = cleanAddr(input.value);
+      if (!addr) { S.note = 'Enter the address like 192.168.1.20:8766'; renderGate(); return; }
+      agentAddr = addr; S.unreachable = false; connect(false);
+    };
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+    gate.replaceChildren(
+      h('h1', null, 'Which Mac?'),
+      h('p', null, 'Enter the address from the Mac\u2019s menu bar (deckhand \u203A Browser client), or scan its QR code.'),
+      input, note,
+      h('button', { class: 'btn primary', type: 'button', on: { click: go } }, 'Connect'));
+  } else if (S.conn === 'unpaired') {
+    gate.replaceChildren(
+      h('h1', null, 'Control this Mac from here'),
+      h('p', null, 'Tap Pair, then click Allow in the dialog that appears on the Mac.'),
+      note,
+      h('button', { class: 'btn primary', type: 'button', on: { click: () => connect(true) } }, 'Pair with this Mac'));
+  } else if (S.conn === 'pairing') {
+    gate.replaceChildren(
+      h('h1', null, 'Waiting for the Mac'),
+      S.code
+        ? [h('p', null, 'Click Allow on the Mac. Its dialog shows this code:'),
+           h('div', { class: 'code' }, S.code.slice(0, 3) + ' ' + S.code.slice(3))]
+        : [h('div', { class: 'spin' })],
+      note,
+      h('button', { class: 'btn', type: 'button', on: { click: () => { if (ws) { const w = ws; ws = null; w.onclose = null; w.close(); } setConn('unpaired'); } } }, 'Cancel'));
+  } else {
+    gate.replaceChildren(
+      h('div', { class: 'spin' }),
+      h('p', null, S.conn === 'reconnecting' ? 'Reconnecting to your Mac…' : 'Connecting to your Mac…'),
+      note);
+  }
+}
+
+$('tabs').addEventListener('click', (e) => {
+  const tab = e.target.closest('button') && e.target.closest('button').dataset.tab;
+  if (!tab || tab === S.tab) return;
+  S.tab = tab;
+  store.set(TAB_KEY, tab);
+  $('view').scrollTop = 0;
+  renderAll();
+});
+$('mac').addEventListener('click', () => {
+  openSheet(S.mac || 'deckhand', 'This browser is paired with the Mac', [
+    REMOTE ? { label: 'Change Mac address', run: () => {
+      store.del(AGENT_KEY);
+      agentAddr = '';
+      if (ws) { const w = ws; ws = null; w.onclose = null; try { w.close(); } catch (e) { /* closed */ } }
+      S.mac = ''; S.front = null; S.apps = []; S.displays = []; S.stages = [];
+      setConn('address');
+    } } : null,
+    { label: 'Forget this Mac', danger: true, run: () => {
+      rpc('pair.forget', {}, 4000).catch(() => {}).finally(() => {
+        store.del(tokenKey());
+        if (ws) { const w = ws; ws = null; w.onclose = null; try { w.close(); } catch (e) { /* closed */ } }
+        S.mac = ''; S.front = null; S.apps = []; S.displays = []; S.stages = [];
+        setConn('unpaired');
+      });
+    } },
+  ]);
+});
+
+renderGate();
+renderAll();
+connect(false);
+})();
+</script>
+</body>
+</html>
